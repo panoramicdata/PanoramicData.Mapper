@@ -32,7 +32,7 @@ public class ValueResolverTests
 
     private class FullNameResolver : IValueResolver<ValueResolverSource, ValueResolverDest, string>
     {
-        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
+        public string Resolve(ValueResolverSource source, ValueResolverDest _destination, string _destMember, ResolutionContext _context)
             => $"{source.FirstName} {source.LastName}";
     }
 

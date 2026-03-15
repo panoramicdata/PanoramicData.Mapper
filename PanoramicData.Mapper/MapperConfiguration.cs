@@ -65,61 +65,70 @@ public sealed class MapperConfiguration : IConfigurationProvider
 	/// <inheritdoc />
 	public TypeMap? FindTypeMap(Type sourceType, Type destinationType)
 	{
-		// Exact match first
 		var exact = _typeMaps.FirstOrDefault(m => m.SourceType == sourceType && m.DestinationType == destinationType);
 		if (exact is not null)
 		{
 			return exact;
 		}
 
-		// Inheritance: check for IncludeAllDerived base maps
+		return TryResolveInheritedMap(sourceType, destinationType)
+			?? TryResolveOpenGenericMap(sourceType, destinationType);
+	}
+
+	private TypeMap? TryResolveInheritedMap(Type sourceType, Type destinationType)
+	{
 		foreach (var typeMap in _typeMaps)
 		{
 			if (typeMap.IncludeAllDerivedFlag &&
 				typeMap.SourceType.IsAssignableFrom(sourceType) &&
 				typeMap.DestinationType.IsAssignableFrom(destinationType))
 			{
-				// Create a derived TypeMap on-the-fly, cache it
-				var derived = new TypeMap(sourceType, destinationType);
-				typeMap.CopyConfigurationTo(derived);
-				derived.TypeMapResolver = FindTypeMap;
-				_typeMaps.Add(derived);
-				return derived;
+				return CreateAndCacheDerivedMap(sourceType, destinationType, typeMap);
 			}
 		}
 
-		// Inheritance: check Include-declared derived pairs
 		foreach (var typeMap in _typeMaps)
 		{
 			foreach (var (derivedSource, derivedDest) in typeMap.IncludedDerivedTypes)
 			{
 				if (derivedSource == sourceType && derivedDest == destinationType)
 				{
-					var derived = new TypeMap(sourceType, destinationType);
-					typeMap.CopyConfigurationTo(derived);
-					derived.TypeMapResolver = FindTypeMap;
-					_typeMaps.Add(derived);
-					return derived;
+					return CreateAndCacheDerivedMap(sourceType, destinationType, typeMap);
 				}
 			}
 		}
 
-		// Open generic resolution
-		if (sourceType.IsGenericType && destinationType.IsGenericType)
+		return null;
+	}
+
+	private TypeMap CreateAndCacheDerivedMap(Type sourceType, Type destinationType, TypeMap baseMap)
+	{
+		var derived = new TypeMap(sourceType, destinationType);
+		baseMap.CopyConfigurationTo(derived);
+		derived.TypeMapResolver = FindTypeMap;
+		_typeMaps.Add(derived);
+		return derived;
+	}
+
+	private TypeMap? TryResolveOpenGenericMap(Type sourceType, Type destinationType)
+	{
+		if (!sourceType.IsGenericType || !destinationType.IsGenericType)
 		{
-			var srcGenDef = sourceType.GetGenericTypeDefinition();
-			var destGenDef = destinationType.GetGenericTypeDefinition();
-			var openMatch = _openGenericMaps.FirstOrDefault(m => m.SourceType == srcGenDef && m.DestType == destGenDef);
-			if (openMatch != default)
-			{
-				var closed = new TypeMap(sourceType, destinationType);
-				closed.TypeMapResolver = FindTypeMap;
-				_typeMaps.Add(closed);
-				return closed;
-			}
+			return null;
 		}
 
-		return null;
+		var srcGenDef = sourceType.GetGenericTypeDefinition();
+		var destGenDef = destinationType.GetGenericTypeDefinition();
+		var openMatch = _openGenericMaps.FirstOrDefault(m => m.SourceType == srcGenDef && m.DestType == destGenDef);
+		if (openMatch == default)
+		{
+			return null;
+		}
+
+		var closed = new TypeMap(sourceType, destinationType);
+		closed.TypeMapResolver = FindTypeMap;
+		_typeMaps.Add(closed);
+		return closed;
 	}
 
 	/// <inheritdoc />

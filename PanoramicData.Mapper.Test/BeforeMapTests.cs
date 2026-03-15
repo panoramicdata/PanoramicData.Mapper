@@ -45,7 +45,7 @@ public class BeforeMapTests
 
     private class BeforeMapAction : IMappingAction<BeforeMapSource, BeforeMapDest>
     {
-        public void Process(BeforeMapSource source, BeforeMapDest destination, ResolutionContext context)
+        public void Process(BeforeMapSource _source, BeforeMapDest destination, ResolutionContext _context)
         {
             destination.Tag = "action-tag";
         }

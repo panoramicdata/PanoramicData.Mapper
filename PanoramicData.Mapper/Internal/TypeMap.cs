@@ -106,7 +106,6 @@ public sealed class TypeMap
 	/// </summary>
 	public object Map(object source)
 	{
-		// ConvertUsing: bypass normal mapping entirely
 		if (ConverterFunc is not null)
 		{
 			return ConverterFunc.DynamicInvoke(source)
@@ -115,36 +114,45 @@ public sealed class TypeMap
 
 		if (ConverterType is not null)
 		{
-			var converter = Activator.CreateInstance(ConverterType)
-				?? throw new InvalidOperationException($"Cannot create instance of converter {ConverterType.FullName}");
-			var convertMethod = ConverterType.GetMethod("Convert")
-				?? throw new InvalidOperationException($"Converter {ConverterType.FullName} does not have a Convert method");
-			var destDefault = DestinationType.IsValueType ? Activator.CreateInstance(DestinationType) : null;
-			return convertMethod.Invoke(converter, [source, destDefault, new ResolutionContext()])
-				?? throw new InvalidOperationException("Converter returned null.");
+			return MapWithConverterType(source);
 		}
 
-		// MaxDepth check
 		if (MaxDepthValue.HasValue)
 		{
-			if (t_currentDepth >= MaxDepthValue.Value)
-			{
-				return Activator.CreateInstance(DestinationType)
-					?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}.");
-			}
-
-			t_currentDepth++;
-			try
-			{
-				return MapCore(source);
-			}
-			finally
-			{
-				t_currentDepth--;
-			}
+			return MapWithDepthTracking(source);
 		}
 
 		return MapCore(source);
+	}
+
+	private object MapWithConverterType(object source)
+	{
+		var converter = Activator.CreateInstance(ConverterType!)
+			?? throw new InvalidOperationException($"Cannot create instance of converter {ConverterType!.FullName}");
+		var convertMethod = ConverterType!.GetMethod("Convert")
+			?? throw new InvalidOperationException($"Converter {ConverterType!.FullName} does not have a Convert method");
+		var destDefault = DestinationType.IsValueType ? Activator.CreateInstance(DestinationType) : null;
+		return convertMethod.Invoke(converter, [source, destDefault, new ResolutionContext()])
+			?? throw new InvalidOperationException("Converter returned null.");
+	}
+
+	private object MapWithDepthTracking(object source)
+	{
+		if (t_currentDepth >= MaxDepthValue!.Value)
+		{
+			return Activator.CreateInstance(DestinationType)
+				?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}.");
+		}
+
+		t_currentDepth++;
+		try
+		{
+			return MapCore(source);
+		}
+		finally
+		{
+			t_currentDepth--;
+		}
 	}
 
 	private object MapCore(object source)
@@ -227,104 +235,10 @@ public sealed class TypeMap
 
 		foreach (var destProp in destProperties)
 		{
-			// If all members are ignored, skip everything
-			if (AllMembersIgnored)
+			var assignment = TryBuildPropertyAssignment(destProp, sourceProperties);
+			if (assignment is not null)
 			{
-				continue;
-			}
-
-			// Check for [Ignore] attribute on destination property
-			if (destProp.GetCustomAttribute<IgnoreAttribute>() is not null)
-			{
-				continue;
-			}
-
-			// Check if this member is explicitly ignored
-			if (IgnoredMembers.Contains(destProp.Name))
-			{
-				continue;
-			}
-
-			// Check if there's a custom MapFrom expression or value resolver
-			if (PropertyMappings.TryGetValue(destProp.Name, out var mapping))
-			{
-				assignments.Add(BuildMappingAssignment(mapping, destProp));
-				continue;
-			}
-
-			// Convention-based: match by name and compatible type
-			if (sourceProperties.TryGetValue(destProp.Name, out var sourceProp))
-			{
-				if (IsAssignableOrConvertible(sourceProp.PropertyType, destProp.PropertyType))
-				{
-					var srcGetter = CreateGetter(sourceProp);
-					var destSetter = CreateSetter(destProp);
-					assignments.Add((src, dest) =>
-					{
-						var value = srcGetter(src);
-						value = ApplyValueTransformers(value, destProp.PropertyType);
-						destSetter(dest, value);
-					});
-					continue;
-				}
-
-				// Nested mapping: source and dest property types differ but a TypeMap exists
-				if (TypeMapResolver is not null)
-				{
-					var nestedMap = TypeMapResolver(sourceProp.PropertyType, destProp.PropertyType);
-					if (nestedMap is not null)
-					{
-						var srcGetter = CreateGetter(sourceProp);
-						var destSetter = CreateSetter(destProp);
-						assignments.Add((src, dest) =>
-						{
-							var value = srcGetter(src);
-							if (value is not null)
-							{
-								destSetter(dest, nestedMap.Map(value));
-							}
-						});
-						continue;
-					}
-
-					// Collection property mapping: both are collections and element types have a map
-					if (TryGetCollectionElementType(sourceProp.PropertyType, out var srcElemType) &&
-						TryGetCollectionElementType(destProp.PropertyType, out var destElemType))
-					{
-						var elemMap = TypeMapResolver(srcElemType, destElemType);
-						if (elemMap is not null)
-						{
-							var srcGetter = CreateGetter(sourceProp);
-							var destSetter = CreateSetter(destProp);
-							var destCollType = destProp.PropertyType;
-							assignments.Add((src, dest) =>
-							{
-								var value = srcGetter(src);
-								if (value is not null)
-								{
-									destSetter(dest, MapCollection((IEnumerable)value, elemMap, destCollType, destElemType));
-								}
-							});
-							continue;
-						}
-					}
-				}
-
-				continue;
-			}
-
-			// Flattening: split PascalCase destination name and traverse source graph
-			var flattenedGetter = TryBuildFlattenedGetter(destProp.Name, SourceType);
-			if (flattenedGetter is not null && IsAssignableOrConvertible(flattenedGetter.Value.ReturnType, destProp.PropertyType))
-			{
-				var getter = flattenedGetter.Value.Getter;
-				var destSetter = CreateSetter(destProp);
-				assignments.Add((src, dest) =>
-				{
-					var value = getter(src);
-					value = ApplyValueTransformers(value, destProp.PropertyType);
-					destSetter(dest, value);
-				});
+				assignments.Add(assignment);
 			}
 		}
 
@@ -332,12 +246,10 @@ public sealed class TypeMap
 		foreach (var kvp in PathMappings)
 		{
 			var pathMapping = kvp.Value;
-			if (pathMapping.PathSegments is null || pathMapping.PathSegments.Length == 0)
+			if (pathMapping.PathSegments is not null && pathMapping.PathSegments.Length > 0)
 			{
-				continue;
+				assignments.Add(BuildForPathAssignment(pathMapping));
 			}
-
-			assignments.Add(BuildForPathAssignment(pathMapping));
 		}
 
 		return (src, dest) =>
@@ -351,6 +263,131 @@ public sealed class TypeMap
 		};
 	}
 
+	private Action<object, object>? TryBuildPropertyAssignment(
+		PropertyInfo destProp,
+		Dictionary<string, PropertyInfo> sourceProperties)
+	{
+		if (AllMembersIgnored)
+		{
+			return null;
+		}
+
+		if (destProp.GetCustomAttribute<IgnoreAttribute>() is not null)
+		{
+			return null;
+		}
+
+		if (IgnoredMembers.Contains(destProp.Name))
+		{
+			return null;
+		}
+
+		if (PropertyMappings.TryGetValue(destProp.Name, out var mapping))
+		{
+			return BuildMappingAssignment(mapping, destProp);
+		}
+
+		if (sourceProperties.TryGetValue(destProp.Name, out var sourceProp))
+		{
+			return TryBuildConventionAssignment(sourceProp, destProp);
+		}
+
+		return TryBuildFlattenedAssignment(destProp);
+	}
+
+	private Action<object, object>? TryBuildConventionAssignment(PropertyInfo sourceProp, PropertyInfo destProp)
+	{
+		if (IsAssignableOrConvertible(sourceProp.PropertyType, destProp.PropertyType))
+		{
+			var srcGetter = CreateGetter(sourceProp);
+			var destSetter = CreateSetter(destProp);
+			return (src, dest) =>
+			{
+				var value = srcGetter(src);
+				value = ApplyValueTransformers(value, destProp.PropertyType);
+				destSetter(dest, value);
+			};
+		}
+
+		if (TypeMapResolver is not null)
+		{
+			var nested = TryBuildNestedAssignment(sourceProp, destProp);
+			if (nested is not null)
+			{
+				return nested;
+			}
+
+			return TryBuildCollectionPropertyAssignment(sourceProp, destProp);
+		}
+
+		return null;
+	}
+
+	private Action<object, object>? TryBuildNestedAssignment(PropertyInfo sourceProp, PropertyInfo destProp)
+	{
+		var nestedMap = TypeMapResolver!(sourceProp.PropertyType, destProp.PropertyType);
+		if (nestedMap is null)
+		{
+			return null;
+		}
+
+		var srcGetter = CreateGetter(sourceProp);
+		var destSetter = CreateSetter(destProp);
+		return (src, dest) =>
+		{
+			var value = srcGetter(src);
+			if (value is not null)
+			{
+				destSetter(dest, nestedMap.Map(value));
+			}
+		};
+	}
+
+	private Action<object, object>? TryBuildCollectionPropertyAssignment(PropertyInfo sourceProp, PropertyInfo destProp)
+	{
+		if (!TryGetCollectionElementType(sourceProp.PropertyType, out var srcElemType) ||
+			!TryGetCollectionElementType(destProp.PropertyType, out var destElemType))
+		{
+			return null;
+		}
+
+		var elemMap = TypeMapResolver!(srcElemType, destElemType);
+		if (elemMap is null)
+		{
+			return null;
+		}
+
+		var srcGetter = CreateGetter(sourceProp);
+		var destSetter = CreateSetter(destProp);
+		var destCollType = destProp.PropertyType;
+		return (src, dest) =>
+		{
+			var value = srcGetter(src);
+			if (value is not null)
+			{
+				destSetter(dest, MapCollection((IEnumerable)value, elemMap, destCollType, destElemType));
+			}
+		};
+	}
+
+	private Action<object, object>? TryBuildFlattenedAssignment(PropertyInfo destProp)
+	{
+		var flattenedGetter = TryBuildFlattenedGetter(destProp.Name, SourceType);
+		if (flattenedGetter is null || !IsAssignableOrConvertible(flattenedGetter.Value.ReturnType, destProp.PropertyType))
+		{
+			return null;
+		}
+
+		var getter = flattenedGetter.Value.Getter;
+		var destSetter = CreateSetter(destProp);
+		return (src, dest) =>
+		{
+			var value = getter(src);
+			value = ApplyValueTransformers(value, destProp.PropertyType);
+			destSetter(dest, value);
+		};
+	}
+
 	private Action<object, object> BuildMappingAssignment(PropertyMapping mapping, PropertyInfo destProp)
 	{
 		var destSetter = CreateSetter(destProp);
@@ -358,59 +395,52 @@ public sealed class TypeMap
 
 		return (src, dest) =>
 		{
-			// PreCondition check
-			if (mapping.PreCondition is not null)
-			{
-				var preResult = mapping.PreCondition.DynamicInvoke(src);
-				if (preResult is false)
-				{
-					return;
-				}
-			}
-
-			// Resolve the value
-			object? value;
-			if (mapping.ValueResolverType is not null)
-			{
-				var resolver = mapping.ValueResolverInstance
-					?? Activator.CreateInstance(mapping.ValueResolverType)
-					?? throw new InvalidOperationException($"Cannot create resolver {mapping.ValueResolverType.FullName}");
-				var resolveMethod = mapping.ValueResolverType.GetMethod("Resolve")
-					?? throw new InvalidOperationException($"Resolver {mapping.ValueResolverType.FullName} does not have a Resolve method");
-				var currentDestValue = destGetter(dest);
-				value = resolveMethod.Invoke(resolver, [src, dest, currentDestValue, new ResolutionContext()]);
-			}
-			else if (mapping.SourceExpression is not null)
-			{
-				var compiledGetter = mapping.SourceExpression.Compile();
-				value = compiledGetter.DynamicInvoke(src);
-			}
-			else
+			if (mapping.PreCondition is not null && mapping.PreCondition.DynamicInvoke(src) is false)
 			{
 				return;
 			}
 
-			// Condition check (after value resolution)
-			if (mapping.Condition is not null)
+			var value = ResolveValue(mapping, src, dest, destGetter);
+			if (value is null && !mapping.HasNullSubstitute && mapping.SourceExpression is null && mapping.ValueResolverType is null)
 			{
-				var condResult = mapping.Condition.DynamicInvoke(src, dest, value);
-				if (condResult is false)
-				{
-					return;
-				}
+				return;
 			}
 
-			// Null substitution
+			if (mapping.Condition is not null && mapping.Condition.DynamicInvoke(src, dest, value) is false)
+			{
+				return;
+			}
+
 			if (value is null && mapping.HasNullSubstitute)
 			{
 				value = mapping.NullSubstitute;
 			}
 
-			// Value transformers
 			value = ApplyValueTransformers(value, destProp.PropertyType);
-
 			destSetter(dest, value);
 		};
+	}
+
+	private static object? ResolveValue(PropertyMapping mapping, object src, object dest, Func<object, object?> destGetter)
+	{
+		if (mapping.ValueResolverType is not null)
+		{
+			var resolver = mapping.ValueResolverInstance
+				?? Activator.CreateInstance(mapping.ValueResolverType)
+				?? throw new InvalidOperationException($"Cannot create resolver {mapping.ValueResolverType.FullName}");
+			var resolveMethod = mapping.ValueResolverType.GetMethod("Resolve")
+				?? throw new InvalidOperationException($"Resolver {mapping.ValueResolverType.FullName} does not have a Resolve method");
+			var currentDestValue = destGetter(dest);
+			return resolveMethod.Invoke(resolver, [src, dest, currentDestValue, new ResolutionContext()]);
+		}
+
+		if (mapping.SourceExpression is not null)
+		{
+			var compiledGetter = mapping.SourceExpression.Compile();
+			return compiledGetter.DynamicInvoke(src);
+		}
+
+		return null;
 	}
 
 	private Action<object, object> BuildForPathAssignment(PropertyMapping pathMapping)
@@ -419,13 +449,11 @@ public sealed class TypeMap
 
 		return (src, dest) =>
 		{
-			// PreCondition check
 			if (pathMapping.PreCondition is not null && pathMapping.PreCondition.DynamicInvoke(src) is false)
 			{
 				return;
 			}
 
-			// Resolve the value
 			object? value = null;
 			if (pathMapping.SourceExpression is not null)
 			{
@@ -433,32 +461,36 @@ public sealed class TypeMap
 				value = compiled.DynamicInvoke(src);
 			}
 
-			// Navigate to the parent and set the leaf property
-			var current = dest;
-			var currentType = DestinationType;
+			SetNestedValue(dest, DestinationType, segments, value);
+		};
+	}
 
-			for (var i = 0; i < segments.Length - 1; i++)
+	private static void SetNestedValue(object target, Type targetType, string[] segments, object? value)
+	{
+		var current = target;
+		var currentType = targetType;
+
+		for (var i = 0; i < segments.Length - 1; i++)
+		{
+			var prop = currentType.GetProperty(segments[i], BindingFlags.Public | BindingFlags.Instance);
+			if (prop is null)
 			{
-				var prop = currentType.GetProperty(segments[i], BindingFlags.Public | BindingFlags.Instance);
-				if (prop is null)
-				{
-					return;
-				}
-
-				var next = prop.GetValue(current);
-				if (next is null)
-				{
-					next = Activator.CreateInstance(prop.PropertyType);
-					prop.SetValue(current, next);
-				}
-
-				current = next;
-				currentType = prop.PropertyType;
+				return;
 			}
 
-			var leafProp = currentType.GetProperty(segments[^1], BindingFlags.Public | BindingFlags.Instance);
-			leafProp?.SetValue(current, value);
-		};
+			var next = prop.GetValue(current);
+			if (next is null)
+			{
+				next = Activator.CreateInstance(prop.PropertyType);
+				prop.SetValue(current, next);
+			}
+
+			current = next;
+			currentType = prop.PropertyType;
+		}
+
+		var leafProp = currentType.GetProperty(segments[^1], BindingFlags.Public | BindingFlags.Instance);
+		leafProp?.SetValue(current, value);
 	}
 
 	private object? ApplyValueTransformers(object? value, Type destType)
@@ -571,47 +603,44 @@ public sealed class TypeMap
 
 		foreach (var destProp in DestinationType.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.CanWrite))
 		{
-			// Skip if ignored via attribute
-			if (destProp.GetCustomAttribute<IgnoreAttribute>() is not null)
+			if (!IsMemberMapped(destProp, sourceProperties))
 			{
-				continue;
+				unmapped.Add(destProp.Name);
 			}
-
-			// Skip if explicitly ignored
-			if (IgnoredMembers.Contains(destProp.Name))
-			{
-				continue;
-			}
-
-			// Skip if has custom mapping
-			if (PropertyMappings.ContainsKey(destProp.Name))
-			{
-				continue;
-			}
-
-			// Skip if mapped via ForPath
-			if (PathMappings.Values.Any(pm => pm.PathSegments is not null && pm.PathSegments[0] == destProp.Name))
-			{
-				continue;
-			}
-
-			// Skip if convention-matched by name
-			if (sourceProperties.ContainsKey(destProp.Name))
-			{
-				continue;
-			}
-
-			// Skip if resolvable via flattening
-			var flattenedGetter = TryBuildFlattenedGetter(destProp.Name, SourceType);
-			if (flattenedGetter is not null && IsAssignableOrConvertible(flattenedGetter.Value.ReturnType, destProp.PropertyType))
-			{
-				continue;
-			}
-
-			unmapped.Add(destProp.Name);
 		}
 
 		return unmapped;
+	}
+
+	private bool IsMemberMapped(PropertyInfo destProp, Dictionary<string, PropertyInfo> sourceProperties)
+	{
+		if (destProp.GetCustomAttribute<IgnoreAttribute>() is not null)
+		{
+			return true;
+		}
+
+		if (IgnoredMembers.Contains(destProp.Name))
+		{
+			return true;
+		}
+
+		if (PropertyMappings.ContainsKey(destProp.Name))
+		{
+			return true;
+		}
+
+		if (PathMappings.Values.Any(pm => pm.PathSegments is not null && pm.PathSegments[0] == destProp.Name))
+		{
+			return true;
+		}
+
+		if (sourceProperties.ContainsKey(destProp.Name))
+		{
+			return true;
+		}
+
+		var flattenedGetter = TryBuildFlattenedGetter(destProp.Name, SourceType);
+		return flattenedGetter is not null && IsAssignableOrConvertible(flattenedGetter.Value.ReturnType, destProp.PropertyType);
 	}
 
 	/// <summary>
@@ -675,60 +704,60 @@ public sealed class TypeMap
 			.Where(p => p.CanRead)
 			.ToDictionary(p => p.Name, StringComparer.Ordinal);
 
-		// Try increasingly long prefixes of remaining segments
 		for (var length = 1; length <= segments.Count - startIndex; length++)
 		{
 			var prefix = string.Concat(segments.Skip(startIndex).Take(length));
+			var remainingConsumed = startIndex + length == segments.Count;
 
-			// Try property match
 			if (props.TryGetValue(prefix, out var prop))
 			{
-				if (startIndex + length == segments.Count)
+				var result = BuildPropertyAccessor(segments, startIndex + length, remainingConsumed, obj => prop.GetValue(obj), prop.PropertyType);
+				if (result is not null)
 				{
-					// All segments consumed — this is the final value
-					return new FlattenedAccessor(obj => prop.GetValue(obj), prop.PropertyType);
-				}
-
-				// More segments remain — recurse into this property's type
-				var nested = TryBuildAccessorChain(segments, startIndex + length, prop.PropertyType);
-				if (nested is not null)
-				{
-					var nestedGetter = nested.Value.Getter;
-					return new FlattenedAccessor(
-						obj =>
-						{
-							var intermediate = prop.GetValue(obj);
-							return intermediate is null ? null : nestedGetter(intermediate);
-						},
-						nested.Value.ReturnType);
+					return result;
 				}
 			}
 
-			// Try GetX() method match
 			var method = currentType.GetMethod($"Get{prefix}", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
 			if (method is not null && method.ReturnType != typeof(void))
 			{
-				if (startIndex + length == segments.Count)
+				var result = BuildPropertyAccessor(segments, startIndex + length, remainingConsumed, obj => method.Invoke(obj, null), method.ReturnType);
+				if (result is not null)
 				{
-					return new FlattenedAccessor(obj => method.Invoke(obj, null), method.ReturnType);
-				}
-
-				var nested = TryBuildAccessorChain(segments, startIndex + length, method.ReturnType);
-				if (nested is not null)
-				{
-					var nestedGetter = nested.Value.Getter;
-					return new FlattenedAccessor(
-						obj =>
-						{
-							var intermediate = method.Invoke(obj, null);
-							return intermediate is null ? null : nestedGetter(intermediate);
-						},
-						nested.Value.ReturnType);
+					return result;
 				}
 			}
 		}
 
 		return null;
+	}
+
+	private static FlattenedAccessor? BuildPropertyAccessor(
+		List<string> segments,
+		int nextIndex,
+		bool allConsumed,
+		Func<object, object?> getter,
+		Type returnType)
+	{
+		if (allConsumed)
+		{
+			return new FlattenedAccessor(getter, returnType);
+		}
+
+		var nested = TryBuildAccessorChain(segments, nextIndex, returnType);
+		if (nested is null)
+		{
+			return null;
+		}
+
+		var nestedGetter = nested.Value.Getter;
+		return new FlattenedAccessor(
+			obj =>
+			{
+				var intermediate = getter(obj);
+				return intermediate is null ? null : nestedGetter(intermediate);
+			},
+			nested.Value.ReturnType);
 	}
 
 	private static List<string> SplitPascalCase(string name)
