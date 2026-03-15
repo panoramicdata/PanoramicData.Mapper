@@ -1,0 +1,7 @@
+{
+  "version": "10.0",
+  "publicReleaseRefSpec": [
+    "^refs/heads/main$",
+    "^refs/tags/v\\d+\\.\\d+\\.\\d+$"
+  ]
+}

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="LICENSE" />
+    <File Path="MASTER PLAN.md" />
+    <File Path="nuget-key.txt" />
+    <File Path="README.md" />
+    <File Path="version.json" />
+  </Folder>
+  <Project Path="PanoramicData.Mapper.Test/PanoramicData.Mapper.Test.csproj" />
+  <Project Path="PanoramicData.Mapper/PanoramicData.Mapper.csproj" />
+</Solution>
