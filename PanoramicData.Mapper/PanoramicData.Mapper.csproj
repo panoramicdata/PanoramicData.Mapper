@@ -23,7 +23,7 @@
 	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageTags>Mapper;AutoMapper;ObjectMapping;PanoramicData</PackageTags>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 </PropertyGroup>
