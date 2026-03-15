@@ -1,5 +1,6 @@
 using PanoramicData.Mapper.Configuration.Annotations;
 using System.Collections;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace PanoramicData.Mapper.Internal;
@@ -25,6 +26,10 @@ public sealed class TypeMap
 
 	internal bool AllMembersIgnored { get; set; }
 
+	internal List<Delegate> BeforeMapActions { get; } = [];
+
+	internal List<Type> BeforeMapActionTypes { get; } = [];
+
 	internal List<Delegate> AfterMapActions { get; } = [];
 
 	internal List<Type> AfterMapActionTypes { get; } = [];
@@ -34,6 +39,59 @@ public sealed class TypeMap
 	/// Set by MapperConfiguration after all TypeMaps are collected.
 	/// </summary>
 	internal Func<Type, Type, TypeMap?>? TypeMapResolver { get; set; }
+
+	/// <summary>
+	/// Custom converter function (for ConvertUsing with lambda).
+	/// </summary>
+	internal Delegate? ConverterFunc { get; set; }
+
+	/// <summary>
+	/// Custom converter type (for ConvertUsing with ITypeConverter).
+	/// </summary>
+	internal Type? ConverterType { get; set; }
+
+	/// <summary>
+	/// Custom constructor function (for ConstructUsing).
+	/// </summary>
+	internal Delegate? ConstructorFunc { get; set; }
+
+	/// <summary>
+	/// Constructor parameter mappings (for ForCtorParam).
+	/// </summary>
+	internal Dictionary<string, LambdaExpression> CtorParamMappings { get; } = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// Maximum recursion depth for nested mappings.
+	/// </summary>
+	internal int? MaxDepthValue { get; set; }
+
+	/// <summary>
+	/// Value transformers keyed by the value type they apply to.
+	/// </summary>
+	internal List<(Type ValueType, Delegate Transform)> ValueTransformers { get; } = [];
+
+	/// <summary>
+	/// Derived type pairs registered via Include.
+	/// </summary>
+	internal List<(Type DerivedSourceType, Type DerivedDestType)> IncludedDerivedTypes { get; } = [];
+
+	/// <summary>
+	/// When true, this map is used for any derived source type that doesn't have its own map.
+	/// </summary>
+	internal bool IncludeAllDerivedFlag { get; set; }
+
+	/// <summary>
+	/// Base type pair registered via IncludeBase.
+	/// </summary>
+	internal (Type BaseSourceType, Type BaseDestType)? IncludedBaseTypes { get; set; }
+
+	/// <summary>
+	/// ForPath mappings: key is the full path expression string, value is the mapping.
+	/// </summary>
+	internal Dictionary<string, PropertyMapping> PathMappings { get; } = new(StringComparer.Ordinal);
+
+	[ThreadStatic]
+	private static int t_currentDepth;
 
 	private Func<object, object, object>? _compiledMapper;
 
@@ -48,9 +106,95 @@ public sealed class TypeMap
 	/// </summary>
 	public object Map(object source)
 	{
-		var destination = Activator.CreateInstance(DestinationType)
-			?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}. Ensure it has a parameterless constructor.");
+		// ConvertUsing: bypass normal mapping entirely
+		if (ConverterFunc is not null)
+		{
+			return ConverterFunc.DynamicInvoke(source)
+				?? throw new InvalidOperationException("Converter returned null.");
+		}
+
+		if (ConverterType is not null)
+		{
+			var converter = Activator.CreateInstance(ConverterType)
+				?? throw new InvalidOperationException($"Cannot create instance of converter {ConverterType.FullName}");
+			var convertMethod = ConverterType.GetMethod("Convert")
+				?? throw new InvalidOperationException($"Converter {ConverterType.FullName} does not have a Convert method");
+			var destDefault = DestinationType.IsValueType ? Activator.CreateInstance(DestinationType) : null;
+			return convertMethod.Invoke(converter, [source, destDefault, new ResolutionContext()])
+				?? throw new InvalidOperationException("Converter returned null.");
+		}
+
+		// MaxDepth check
+		if (MaxDepthValue.HasValue)
+		{
+			if (t_currentDepth >= MaxDepthValue.Value)
+			{
+				return Activator.CreateInstance(DestinationType)
+					?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}.");
+			}
+
+			t_currentDepth++;
+			try
+			{
+				return MapCore(source);
+			}
+			finally
+			{
+				t_currentDepth--;
+			}
+		}
+
+		return MapCore(source);
+	}
+
+	private object MapCore(object source)
+	{
+		object destination;
+
+		if (ConstructorFunc is not null)
+		{
+			destination = ConstructorFunc.DynamicInvoke(source)
+				?? throw new InvalidOperationException("ConstructUsing returned null.");
+		}
+		else if (CtorParamMappings.Count > 0)
+		{
+			destination = ConstructWithParams(source);
+		}
+		else
+		{
+			destination = Activator.CreateInstance(DestinationType)
+				?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}. Ensure it has a parameterless constructor.");
+		}
+
 		return MapToExisting(source, destination);
+	}
+
+	private object ConstructWithParams(object source)
+	{
+		var constructors = DestinationType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+		foreach (var ctor in constructors.OrderByDescending(c => c.GetParameters().Length))
+		{
+			var parameters = ctor.GetParameters();
+			var allMapped = parameters.All(p => CtorParamMappings.ContainsKey(p.Name!));
+			if (!allMapped)
+			{
+				continue;
+			}
+
+			var args = new object?[parameters.Length];
+			for (var i = 0; i < parameters.Length; i++)
+			{
+				var expr = CtorParamMappings[parameters[i].Name!];
+				var compiled = expr.Compile();
+				args[i] = compiled.DynamicInvoke(source);
+			}
+
+			return ctor.Invoke(args);
+		}
+
+		// Fallback to parameterless
+		return Activator.CreateInstance(DestinationType)
+			?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}. No matching constructor found.");
 	}
 
 	/// <summary>
@@ -63,6 +207,7 @@ public sealed class TypeMap
 			_compiledMapper = CompileMapper();
 		}
 
+		ExecuteBeforeMapActions(source, destination);
 		_compiledMapper(source, destination);
 		ExecuteAfterMapActions(source, destination);
 		return destination;
@@ -100,16 +245,10 @@ public sealed class TypeMap
 				continue;
 			}
 
-			// Check if there's a custom MapFrom expression
+			// Check if there's a custom MapFrom expression or value resolver
 			if (PropertyMappings.TryGetValue(destProp.Name, out var mapping))
 			{
-				var compiledGetter = mapping.SourceExpression!.Compile();
-				var destSetter = CreateSetter(destProp);
-				assignments.Add((src, dest) =>
-				{
-					var value = compiledGetter.DynamicInvoke(src);
-					destSetter(dest, value);
-				});
+				assignments.Add(BuildMappingAssignment(mapping, destProp));
 				continue;
 			}
 
@@ -123,6 +262,7 @@ public sealed class TypeMap
 					assignments.Add((src, dest) =>
 					{
 						var value = srcGetter(src);
+						value = ApplyValueTransformers(value, destProp.PropertyType);
 						destSetter(dest, value);
 					});
 					continue;
@@ -182,9 +322,22 @@ public sealed class TypeMap
 				assignments.Add((src, dest) =>
 				{
 					var value = getter(src);
+					value = ApplyValueTransformers(value, destProp.PropertyType);
 					destSetter(dest, value);
 				});
 			}
+		}
+
+		// ForPath assignments
+		foreach (var kvp in PathMappings)
+		{
+			var pathMapping = kvp.Value;
+			if (pathMapping.PathSegments is null || pathMapping.PathSegments.Length == 0)
+			{
+				continue;
+			}
+
+			assignments.Add(BuildForPathAssignment(pathMapping));
 		}
 
 		return (src, dest) =>
@@ -196,6 +349,152 @@ public sealed class TypeMap
 
 			return dest;
 		};
+	}
+
+	private Action<object, object> BuildMappingAssignment(PropertyMapping mapping, PropertyInfo destProp)
+	{
+		var destSetter = CreateSetter(destProp);
+		var destGetter = CreateGetter(destProp);
+
+		return (src, dest) =>
+		{
+			// PreCondition check
+			if (mapping.PreCondition is not null)
+			{
+				var preResult = mapping.PreCondition.DynamicInvoke(src);
+				if (preResult is false)
+				{
+					return;
+				}
+			}
+
+			// Resolve the value
+			object? value;
+			if (mapping.ValueResolverType is not null)
+			{
+				var resolver = mapping.ValueResolverInstance
+					?? Activator.CreateInstance(mapping.ValueResolverType)
+					?? throw new InvalidOperationException($"Cannot create resolver {mapping.ValueResolverType.FullName}");
+				var resolveMethod = mapping.ValueResolverType.GetMethod("Resolve")
+					?? throw new InvalidOperationException($"Resolver {mapping.ValueResolverType.FullName} does not have a Resolve method");
+				var currentDestValue = destGetter(dest);
+				value = resolveMethod.Invoke(resolver, [src, dest, currentDestValue, new ResolutionContext()]);
+			}
+			else if (mapping.SourceExpression is not null)
+			{
+				var compiledGetter = mapping.SourceExpression.Compile();
+				value = compiledGetter.DynamicInvoke(src);
+			}
+			else
+			{
+				return;
+			}
+
+			// Condition check (after value resolution)
+			if (mapping.Condition is not null)
+			{
+				var condResult = mapping.Condition.DynamicInvoke(src, dest, value);
+				if (condResult is false)
+				{
+					return;
+				}
+			}
+
+			// Null substitution
+			if (value is null && mapping.HasNullSubstitute)
+			{
+				value = mapping.NullSubstitute;
+			}
+
+			// Value transformers
+			value = ApplyValueTransformers(value, destProp.PropertyType);
+
+			destSetter(dest, value);
+		};
+	}
+
+	private Action<object, object> BuildForPathAssignment(PropertyMapping pathMapping)
+	{
+		var segments = pathMapping.PathSegments!;
+
+		return (src, dest) =>
+		{
+			// PreCondition check
+			if (pathMapping.PreCondition is not null && pathMapping.PreCondition.DynamicInvoke(src) is false)
+			{
+				return;
+			}
+
+			// Resolve the value
+			object? value = null;
+			if (pathMapping.SourceExpression is not null)
+			{
+				var compiled = pathMapping.SourceExpression.Compile();
+				value = compiled.DynamicInvoke(src);
+			}
+
+			// Navigate to the parent and set the leaf property
+			var current = dest;
+			var currentType = DestinationType;
+
+			for (var i = 0; i < segments.Length - 1; i++)
+			{
+				var prop = currentType.GetProperty(segments[i], BindingFlags.Public | BindingFlags.Instance);
+				if (prop is null)
+				{
+					return;
+				}
+
+				var next = prop.GetValue(current);
+				if (next is null)
+				{
+					next = Activator.CreateInstance(prop.PropertyType);
+					prop.SetValue(current, next);
+				}
+
+				current = next;
+				currentType = prop.PropertyType;
+			}
+
+			var leafProp = currentType.GetProperty(segments[^1], BindingFlags.Public | BindingFlags.Instance);
+			leafProp?.SetValue(current, value);
+		};
+	}
+
+	private object? ApplyValueTransformers(object? value, Type destType)
+	{
+		if (value is null || ValueTransformers.Count == 0)
+		{
+			return value;
+		}
+
+		foreach (var (valueType, transform) in ValueTransformers)
+		{
+			if (valueType.IsAssignableFrom(destType))
+			{
+				value = transform.DynamicInvoke(value);
+			}
+		}
+
+		return value;
+	}
+
+	private void ExecuteBeforeMapActions(object source, object destination)
+	{
+		foreach (var action in BeforeMapActions)
+		{
+			action.DynamicInvoke(source, destination);
+		}
+
+		var context = new ResolutionContext();
+		foreach (var actionType in BeforeMapActionTypes)
+		{
+			var instance = Activator.CreateInstance(actionType)
+				?? throw new InvalidOperationException($"Cannot create instance of mapping action {actionType.FullName}");
+			var processMethod = actionType.GetMethod("Process")
+				?? throw new InvalidOperationException($"Mapping action {actionType.FullName} does not have a Process method");
+			processMethod.Invoke(instance, [source, destination, context]);
+		}
 	}
 
 	private void ExecuteAfterMapActions(object source, object destination)
@@ -290,6 +589,12 @@ public sealed class TypeMap
 				continue;
 			}
 
+			// Skip if mapped via ForPath
+			if (PathMappings.Values.Any(pm => pm.PathSegments is not null && pm.PathSegments[0] == destProp.Name))
+			{
+				continue;
+			}
+
 			// Skip if convention-matched by name
 			if (sourceProperties.ContainsKey(destProp.Name))
 			{
@@ -316,6 +621,37 @@ public sealed class TypeMap
 	internal void ResetCompiledMapper()
 	{
 		_compiledMapper = null;
+	}
+
+	/// <summary>
+	/// Copies configuration from this base TypeMap to a derived TypeMap.
+	/// </summary>
+	internal void CopyConfigurationTo(TypeMap derived)
+	{
+		foreach (var kvp in PropertyMappings)
+		{
+			derived.PropertyMappings.TryAdd(kvp.Key, kvp.Value);
+		}
+
+		foreach (var ignored in IgnoredMembers)
+		{
+			derived.IgnoredMembers.Add(ignored);
+		}
+
+		foreach (var action in BeforeMapActions)
+		{
+			derived.BeforeMapActions.Add(action);
+		}
+
+		foreach (var action in AfterMapActions)
+		{
+			derived.AfterMapActions.Add(action);
+		}
+
+		foreach (var (valueType, transform) in ValueTransformers)
+		{
+			derived.ValueTransformers.Add((valueType, transform));
+		}
 	}
 
 	#region Flattening
