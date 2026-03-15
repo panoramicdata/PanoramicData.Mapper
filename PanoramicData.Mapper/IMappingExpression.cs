@@ -114,4 +114,11 @@ public interface IMappingExpression<TSource, TDestination>
 	/// Add a value transformer for a specific type.
 	/// </summary>
 	IMappingExpression<TSource, TDestination> AddTransform<TValue>(Expression<Func<TValue, TValue>> transformer);
+
+	/// <summary>
+	/// Configure a specific source member for validation purposes.
+	/// </summary>
+	IMappingExpression<TSource, TDestination> ForSourceMember<TMember>(
+		Expression<Func<TSource, TMember>> sourceMember,
+		Action<ISourceMemberConfigurationExpression> memberOptions);
 }

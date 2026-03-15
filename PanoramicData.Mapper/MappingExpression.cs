@@ -171,7 +171,38 @@ internal sealed class MappingExpression<TSource, TDestination>(TypeMap typeMap, 
 		return this;
 	}
 
+	public IMappingExpression<TSource, TDestination> ForSourceMember<TMember>(
+		Expression<Func<TSource, TMember>> sourceMember,
+		Action<ISourceMemberConfigurationExpression> memberOptions)
+	{
+		var memberName = GetSourceMemberName(sourceMember);
+		var config = new SourceMemberConfigurationExpression();
+		memberOptions(config);
+
+		if (config.IsDoNotValidate)
+		{
+			typeMap.IgnoredSourceMembers.Add(memberName);
+		}
+
+		return this;
+	}
+
 	private static string GetMemberName<TMember>(Expression<Func<TDestination, TMember>> expression)
+	{
+		if (expression.Body is MemberExpression memberExpression)
+		{
+			return memberExpression.Member.Name;
+		}
+
+		if (expression.Body is UnaryExpression { Operand: MemberExpression unaryMember })
+		{
+			return unaryMember.Member.Name;
+		}
+
+		throw new ArgumentException($"Expression '{expression}' does not refer to a property or field.");
+	}
+
+	private static string GetSourceMemberName<TMember>(Expression<Func<TSource, TMember>> expression)
 	{
 		if (expression.Body is MemberExpression memberExpression)
 		{

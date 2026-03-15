@@ -22,6 +22,19 @@ public abstract class Profile
 	}
 
 	/// <summary>
+	/// Create a mapping between the source and destination types with a specific member list for validation.
+	/// </summary>
+	protected IMappingExpression<TSource, TDestination> CreateMap<TSource, TDestination>(MemberList memberList)
+	{
+		var typeMap = new TypeMap(typeof(TSource), typeof(TDestination))
+		{
+			MemberListValidation = memberList
+		};
+		TypeMaps.Add(typeMap);
+		return new MappingExpression<TSource, TDestination>(typeMap, RegisterTypeMap);
+	}
+
+	/// <summary>
 	/// Create a mapping between open generic types (e.g., typeof(Source&lt;&gt;), typeof(Dest&lt;&gt;)).
 	/// </summary>
 	protected void CreateMap(Type sourceType, Type destinationType)
