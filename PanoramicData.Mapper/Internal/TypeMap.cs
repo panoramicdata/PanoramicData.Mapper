@@ -161,24 +161,28 @@ public sealed class TypeMap
 
 	private object MapCore(object source)
 	{
-		object destination;
+		var destination = CreateDestination(source);
+		return MapToExisting(source, destination);
+	}
 
+	/// <summary>
+	/// Create a new destination instance without applying property mappings.
+	/// </summary>
+	internal object CreateDestination(object source)
+	{
 		if (ConstructorFunc is not null)
 		{
-			destination = ConstructorFunc.DynamicInvoke(source)
+			return ConstructorFunc.DynamicInvoke(source)
 				?? throw new InvalidOperationException("ConstructUsing returned null.");
 		}
-		else if (CtorParamMappings.Count > 0)
+
+		if (CtorParamMappings.Count > 0)
 		{
-			destination = ConstructWithParams(source);
-		}
-		else
-		{
-			destination = Activator.CreateInstance(DestinationType)
-				?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}. Ensure it has a parameterless constructor.");
+			return ConstructWithParams(source);
 		}
 
-		return MapToExisting(source, destination);
+		return Activator.CreateInstance(DestinationType)
+			?? throw new InvalidOperationException($"Cannot create instance of {DestinationType.FullName}. Ensure it has a parameterless constructor.");
 	}
 
 	private object ConstructWithParams(object source)

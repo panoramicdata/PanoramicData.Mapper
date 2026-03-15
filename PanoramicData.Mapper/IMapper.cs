@@ -34,4 +34,9 @@ public interface IMapper
 	/// Maps from source to an existing destination object using runtime types.
 	/// </summary>
 	object Map(object source, object destination, Type sourceType, Type destinationType);
+
+	/// <summary>
+	/// Maps from source type to a new instance of destination type with inline mapping options.
+	/// </summary>
+	TDestination Map<TSource, TDestination>(TSource source, Action<IMappingOperationOptions<TSource, TDestination>> opts);
 }

@@ -81,6 +81,39 @@ public sealed class Mapper : IMapper
 	}
 
 	/// <inheritdoc />
+	public TDestination Map<TSource, TDestination>(TSource source, Action<IMappingOperationOptions<TSource, TDestination>> opts)
+	{
+		ArgumentNullException.ThrowIfNull(source);
+		ArgumentNullException.ThrowIfNull(opts);
+
+		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination));
+
+		if (typeMap is null)
+		{
+			// Try collection mapping — options not applicable for collections
+			if (TryMapCollection(source, typeof(TSource), typeof(TDestination), out var collectionResult))
+			{
+				return (TDestination)collectionResult;
+			}
+
+			throw new AutoMapperMappingException(
+				$"Missing type map configuration or unsupported mapping. Mapping types: {typeof(TSource).FullName} -> {typeof(TDestination).FullName}");
+		}
+
+		// Collect the user's inline options
+		var options = new MappingOperationOptions<TSource, TDestination>();
+		opts(options);
+
+		// Create destination, execute inline BeforeMap, then map properties, then execute inline AfterMap
+		var destination = (TDestination)typeMap.CreateDestination(source);
+		options.ExecuteBeforeMapActions(source, destination);
+		typeMap.MapToExisting(source, destination);
+		options.ExecuteAfterMapActions(source, destination);
+
+		return destination;
+	}
+
+	/// <inheritdoc />
 	public object Map(object source, Type sourceType, Type destinationType)
 	{
 		ArgumentNullException.ThrowIfNull(source);
