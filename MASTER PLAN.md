@@ -46,22 +46,32 @@ Reviewed against https://docs.automapper.org/en/stable/ and implemented:
 - **Nested Mappings** - When a destination property is a complex type with its own CreateMap, the mapper recursively maps. TypeMap detects mapped child types via TypeMapResolver and invokes their mapping. Also handles collection-typed properties (e.g., `List<ChildSource>` ? `List<ChildDest>`). - DONE
 - **List/Array mapping** - `mapper.Map<List<Dest>>(sourceList)` automatically maps collections if the element type has a map. Supports `List<T>`, `T[]`, and interface types. - DONE
 - **Flattening** - Splits PascalCase destination property names and traverses source graph (e.g., `CustomerName` matches `Customer.Name`). Also supports `GetX()` method matching and deep nesting (e.g., `OrderItemName` ? `Order.Item.Name`). - DONE
-- **ReverseMap** - Creates the inverse mapping automatically. Out of scope.
-- **Mapping Inheritance** - `Include`, `IncludeBase`, `IncludeAllDerived` for polymorphic hierarchies. Out of scope.
-- **Conditional Mapping** - `.Condition()` and `.PreCondition()` on ForMember. Out of scope.
-- **Null Substitution** - `.NullSubstitute(value)`. Out of scope.
-- **Value Resolvers** - `IValueResolver<TSrc,TDst,TMember>`. Out of scope.
-- **Type Converters** - `ConvertUsing()`. Out of scope.
-- **Construction** - `ConstructUsing()`. Out of scope.
-- **Value Transformers** - Global/profile-level value transforms. Out of scope.
-- **Open Generics** - `CreateMap(typeof(Source<>), typeof(Dest<>))`. Out of scope.
-- **BeforeMap** - Only AfterMap is implemented. BeforeMap can be added if needed.
 
 ### P3: Quality and CI
 
-1. Codacy integration - add badge to README once slug is provided
+1. Codacy integration - add badge to README - DONE
 2. Code coverage - `coverlet.collector` already referenced in test project; enable reporting in CI
 3. GitHub Actions CI - build + test + coverage upload on PR/push
+
+### P4: Remaining AutoMapper features
+
+All features previously marked "out of scope" are now planned:
+
+1. **ReverseMap** - `.ReverseMap()` creates the inverse mapping automatically
+2. **BeforeMap** - `.BeforeMap((src, dst) => ...)` pre-mapping callback (AfterMap already implemented)
+3. **Conditional Mapping** - `.Condition()` and `.PreCondition()` on ForMember
+4. **Null Substitution** - `.NullSubstitute(value)` on ForMember
+5. **Value Resolvers** - `IValueResolver<TSrc, TDst, TMember>` for custom resolution logic
+6. **Type Converters** - `ITypeConverter<TSrc, TDst>` and `ConvertUsing()` for full-type conversion
+7. **Construction** - `ConstructUsing()` for custom destination construction
+8. **ForPath** - `.ForPath(d => d.Inner.Prop, opt => ...)` for deep member configuration
+9. **ForCtorParam** - `.ForCtorParam("paramName", opt => ...)` for constructor parameter mapping
+10. **Mapping Inheritance** - `Include`, `IncludeBase`, `IncludeAllDerived` for polymorphic hierarchies
+11. **Value Transformers** - Global/profile-level value transforms
+12. **Open Generics** - `CreateMap(typeof(Source<>), typeof(Dest<>))`
+13. **UseDestinationValue** - `.UseDestinationValue()` to preserve existing destination collection instances
+14. **MaxDepth** - `.MaxDepth(n)` to limit recursive mapping depth
+15. **Async mapping** - async-aware mapping pipeline
 
 ---
 

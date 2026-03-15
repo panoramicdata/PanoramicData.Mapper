@@ -79,16 +79,15 @@ services.AddAutoMapper(cfg => cfg.AddProfile<MyProfile>());
    - `using AutoMapper.Configuration.Annotations;` → `using PanoramicData.Mapper.Configuration.Annotations;`
 3. The `AddAutoMapper()` DI extension methods and all type names (`Profile`, `IMapper`, `MapperConfiguration`, etc.) remain the same
 
-## Out of Scope
+## Not Yet Implemented
 
-Features not currently implemented:
+Planned for future releases:
+- `ReverseMap`, `BeforeMap`
+- `Condition`, `PreCondition`, `NullSubstitute`
 - `IValueResolver`, `ITypeConverter`, `ConvertUsing`, `ConstructUsing`
-- `ReverseMap`, `ForCtorParam`, `PreCondition`, `Condition`
-- `NullSubstitute`, `UseDestinationValue`, `ForPath`, `MaxDepth`
-- `IncludeBase`, `IncludeAllDerived`
-- Open generics
-- Async mapping
-- BeforeMap (AfterMap is supported)
+- `ForPath`, `ForCtorParam`, `UseDestinationValue`, `MaxDepth`
+- `IncludeBase`, `IncludeAllDerived` (mapping inheritance)
+- Value transformers, open generics, async mapping
 
 ## License
 
