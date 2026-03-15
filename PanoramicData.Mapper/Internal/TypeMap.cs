@@ -1,4 +1,5 @@
 using PanoramicData.Mapper.Configuration.Annotations;
+using System.Collections;
 using System.Reflection;
 
 namespace PanoramicData.Mapper.Internal;
@@ -27,6 +28,12 @@ public sealed class TypeMap
 	internal List<Delegate> AfterMapActions { get; } = [];
 
 	internal List<Type> AfterMapActionTypes { get; } = [];
+
+	/// <summary>
+	/// Resolver function to find other TypeMaps for nested/collection mapping.
+	/// Set by MapperConfiguration after all TypeMaps are collected.
+	/// </summary>
+	internal Func<Type, Type, TypeMap?>? TypeMapResolver { get; set; }
 
 	private Func<object, object, object>? _compiledMapper;
 
@@ -118,7 +125,65 @@ public sealed class TypeMap
 						var value = srcGetter(src);
 						destSetter(dest, value);
 					});
+					continue;
 				}
+
+				// Nested mapping: source and dest property types differ but a TypeMap exists
+				if (TypeMapResolver is not null)
+				{
+					var nestedMap = TypeMapResolver(sourceProp.PropertyType, destProp.PropertyType);
+					if (nestedMap is not null)
+					{
+						var srcGetter = CreateGetter(sourceProp);
+						var destSetter = CreateSetter(destProp);
+						assignments.Add((src, dest) =>
+						{
+							var value = srcGetter(src);
+							if (value is not null)
+							{
+								destSetter(dest, nestedMap.Map(value));
+							}
+						});
+						continue;
+					}
+
+					// Collection property mapping: both are collections and element types have a map
+					if (TryGetCollectionElementType(sourceProp.PropertyType, out var srcElemType) &&
+						TryGetCollectionElementType(destProp.PropertyType, out var destElemType))
+					{
+						var elemMap = TypeMapResolver(srcElemType, destElemType);
+						if (elemMap is not null)
+						{
+							var srcGetter = CreateGetter(sourceProp);
+							var destSetter = CreateSetter(destProp);
+							var destCollType = destProp.PropertyType;
+							assignments.Add((src, dest) =>
+							{
+								var value = srcGetter(src);
+								if (value is not null)
+								{
+									destSetter(dest, MapCollection((IEnumerable)value, elemMap, destCollType, destElemType));
+								}
+							});
+							continue;
+						}
+					}
+				}
+
+				continue;
+			}
+
+			// Flattening: split PascalCase destination name and traverse source graph
+			var flattenedGetter = TryBuildFlattenedGetter(destProp.Name, SourceType);
+			if (flattenedGetter is not null && IsAssignableOrConvertible(flattenedGetter.Value.ReturnType, destProp.PropertyType))
+			{
+				var getter = flattenedGetter.Value.Getter;
+				var destSetter = CreateSetter(destProp);
+				assignments.Add((src, dest) =>
+				{
+					var value = getter(src);
+					destSetter(dest, value);
+				});
 			}
 		}
 
@@ -199,11 +264,9 @@ public sealed class TypeMap
 			return [];
 		}
 
-		var sourceProperties = new HashSet<string>(
-			SourceType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-				.Where(p => p.CanRead)
-				.Select(p => p.Name),
-			StringComparer.Ordinal);
+		var sourceProperties = SourceType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+			.Where(p => p.CanRead)
+			.ToDictionary(p => p.Name, StringComparer.Ordinal);
 
 		var unmapped = new List<string>();
 
@@ -227,8 +290,15 @@ public sealed class TypeMap
 				continue;
 			}
 
-			// Skip if convention-matched
-			if (sourceProperties.Contains(destProp.Name))
+			// Skip if convention-matched by name
+			if (sourceProperties.ContainsKey(destProp.Name))
+			{
+				continue;
+			}
+
+			// Skip if resolvable via flattening
+			var flattenedGetter = TryBuildFlattenedGetter(destProp.Name, SourceType);
+			if (flattenedGetter is not null && IsAssignableOrConvertible(flattenedGetter.Value.ReturnType, destProp.PropertyType))
 			{
 				continue;
 			}
@@ -247,4 +317,154 @@ public sealed class TypeMap
 	{
 		_compiledMapper = null;
 	}
+
+	#region Flattening
+
+	private readonly record struct FlattenedAccessor(Func<object, object?> Getter, Type ReturnType);
+
+	private static FlattenedAccessor? TryBuildFlattenedGetter(string destPropName, Type sourceType)
+	{
+		var segments = SplitPascalCase(destPropName);
+		return TryBuildAccessorChain(segments, 0, sourceType);
+	}
+
+	private static FlattenedAccessor? TryBuildAccessorChain(List<string> segments, int startIndex, Type currentType)
+	{
+		if (startIndex >= segments.Count)
+		{
+			return null;
+		}
+
+		var props = currentType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+			.Where(p => p.CanRead)
+			.ToDictionary(p => p.Name, StringComparer.Ordinal);
+
+		// Try increasingly long prefixes of remaining segments
+		for (var length = 1; length <= segments.Count - startIndex; length++)
+		{
+			var prefix = string.Concat(segments.Skip(startIndex).Take(length));
+
+			// Try property match
+			if (props.TryGetValue(prefix, out var prop))
+			{
+				if (startIndex + length == segments.Count)
+				{
+					// All segments consumed — this is the final value
+					return new FlattenedAccessor(obj => prop.GetValue(obj), prop.PropertyType);
+				}
+
+				// More segments remain — recurse into this property's type
+				var nested = TryBuildAccessorChain(segments, startIndex + length, prop.PropertyType);
+				if (nested is not null)
+				{
+					var nestedGetter = nested.Value.Getter;
+					return new FlattenedAccessor(
+						obj =>
+						{
+							var intermediate = prop.GetValue(obj);
+							return intermediate is null ? null : nestedGetter(intermediate);
+						},
+						nested.Value.ReturnType);
+				}
+			}
+
+			// Try GetX() method match
+			var method = currentType.GetMethod($"Get{prefix}", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+			if (method is not null && method.ReturnType != typeof(void))
+			{
+				if (startIndex + length == segments.Count)
+				{
+					return new FlattenedAccessor(obj => method.Invoke(obj, null), method.ReturnType);
+				}
+
+				var nested = TryBuildAccessorChain(segments, startIndex + length, method.ReturnType);
+				if (nested is not null)
+				{
+					var nestedGetter = nested.Value.Getter;
+					return new FlattenedAccessor(
+						obj =>
+						{
+							var intermediate = method.Invoke(obj, null);
+							return intermediate is null ? null : nestedGetter(intermediate);
+						},
+						nested.Value.ReturnType);
+				}
+			}
+		}
+
+		return null;
+	}
+
+	private static List<string> SplitPascalCase(string name)
+	{
+		var segments = new List<string>();
+		var start = 0;
+		for (var i = 1; i < name.Length; i++)
+		{
+			if (char.IsUpper(name[i]))
+			{
+				segments.Add(name[start..i]);
+				start = i;
+			}
+		}
+
+		segments.Add(name[start..]);
+		return segments;
+	}
+
+	#endregion
+
+	#region Collection helpers
+
+	internal static bool TryGetCollectionElementType(Type type, out Type elementType)
+	{
+		// Arrays
+		if (type.IsArray)
+		{
+			elementType = type.GetElementType()!;
+			return true;
+		}
+
+		// IEnumerable<T> implemented by the type
+		var enumerableInterface = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+			? type
+			: type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+		if (enumerableInterface is not null)
+		{
+			elementType = enumerableInterface.GetGenericArguments()[0];
+			return true;
+		}
+
+		elementType = default!;
+		return false;
+	}
+
+	internal static object MapCollection(IEnumerable source, TypeMap elementTypeMap, Type destCollectionType, Type destElementType)
+	{
+		// Array destination
+		if (destCollectionType.IsArray)
+		{
+			var items = source.Cast<object>().Select(item => elementTypeMap.Map(item)).ToList();
+			var array = Array.CreateInstance(destElementType, items.Count);
+			for (var i = 0; i < items.Count; i++)
+			{
+				array.SetValue(items[i], i);
+			}
+
+			return array;
+		}
+
+		// List<T> or any interface assignable from List<T>
+		var listType = typeof(List<>).MakeGenericType(destElementType);
+		var list = (IList)Activator.CreateInstance(listType)!;
+		foreach (var item in source)
+		{
+			list.Add(elementTypeMap.Map(item));
+		}
+
+		return list;
+	}
+
+	#endregion
 }

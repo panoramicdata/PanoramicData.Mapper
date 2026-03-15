@@ -2,7 +2,10 @@
 
 A minimal, MIT-licensed, API-compatible replacement for AutoMapper.
 
-[![NuGet](https://img.shields.io/nuget/v/PanoramicData.Mapper.svg)](https://www.nuget.org/packages/PanoramicData.Mapper/)
+[![Nuget](https://img.shields.io/nuget/v/PanoramicData.Mapper)](https://www.nuget.org/packages/PanoramicData.Mapper/)
+[![Nuget](https://img.shields.io/nuget/dt/PanoramicData.Mapper)](https://www.nuget.org/packages/PanoramicData.Mapper/)
+![License](https://img.shields.io/github/license/panoramicdata/PanoramicData.Mapper)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/95dd8997738d4ffb8daf60c1b85a605d)](https://app.codacy.com/gh/panoramicdata/PanoramicData.Mapper/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 ## Overview
 
@@ -21,6 +24,9 @@ It is a clean-room, black-box reimplementation — no AutoMapper source code was
 - **Map to existing** — `mapper.Map(source, destination)` updates an existing object
 - **ProjectTo** — `IQueryable<T>.ProjectTo<TDest>(configurationProvider)` for EF Core SQL projection
 - **[Ignore] attribute** — `PanoramicData.Mapper.Configuration.Annotations.IgnoreAttribute`
+- **Nested mappings** — recursive mapping of complex child types and collection properties when a CreateMap exists for the child types
+- **Collection/List/Array mapping** — `mapper.Map<List<Dest>>(sourceList)` maps collections automatically when an element-type map is registered
+- **Flattening** — PascalCase destination property names are split and traversed on the source graph (e.g. `CustomerName` → `Customer.Name`); also matches `GetX()` methods
 - **AssertConfigurationIsValid** — detects unmapped destination properties at startup
 - **DI integration** — `AddAutoMapper()` extension methods for `IServiceCollection`
 
@@ -80,9 +86,6 @@ Features not currently implemented:
 - `ReverseMap`, `ForCtorParam`, `PreCondition`, `Condition`
 - `NullSubstitute`, `UseDestinationValue`, `ForPath`, `MaxDepth`
 - `IncludeBase`, `IncludeAllDerived`
-- Nested mappings (recursive child object mapping)
-- Collection/List/Array mapping (automatic element-type mapping)
-- Flattening (PascalCase member name splitting)
 - Open generics
 - Async mapping
 - BeforeMap (AfterMap is supported)

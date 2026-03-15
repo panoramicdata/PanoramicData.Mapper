@@ -23,6 +23,12 @@ public sealed class MapperConfiguration : IConfigurationProvider
 		{
 			_typeMaps.AddRange(profile.TypeMaps);
 		}
+
+		// Wire up resolver for nested/collection mapping support
+		foreach (var typeMap in _typeMaps)
+		{
+			typeMap.TypeMapResolver = FindTypeMap;
+		}
 	}
 
 	/// <summary>

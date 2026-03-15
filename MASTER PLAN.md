@@ -39,13 +39,13 @@ All types live in **PanoramicData.Mapper namespaces**:
 2. Verify `dotnet pack` produces a valid .nupkg + .snupkg
 3. Publish to NuGet.org using `.\Publish.ps1`
 
-### P2: Feature gaps (from AutoMapper documentation review)
+### P2: Feature gaps (from AutoMapper documentation review) - COMPLETE
 
-Reviewed against https://docs.automapper.org/en/stable/ and documented for potential future implementation:
+Reviewed against https://docs.automapper.org/en/stable/ and implemented:
 
-- **Nested Mappings** - When a destination property is a complex type with its own CreateMap, AutoMapper recursively maps. Would require TypeMap to detect mapped child types and invoke their mapping.
-- **List/Array mapping** - `mapper.Map<List<Dest>>(sourceList)` automatically maps collections if the element type has a map. Would require collection-aware logic in Map<T>.
-- **Flattening** - AutoMapper splits PascalCase destination property names and traverses source graph (e.g., `CustomerName` matches `Customer.Name`). Also supports `GetX()` method matching.
+- **Nested Mappings** - When a destination property is a complex type with its own CreateMap, the mapper recursively maps. TypeMap detects mapped child types via TypeMapResolver and invokes their mapping. Also handles collection-typed properties (e.g., `List<ChildSource>` ? `List<ChildDest>`). - DONE
+- **List/Array mapping** - `mapper.Map<List<Dest>>(sourceList)` automatically maps collections if the element type has a map. Supports `List<T>`, `T[]`, and interface types. - DONE
+- **Flattening** - Splits PascalCase destination property names and traverses source graph (e.g., `CustomerName` matches `Customer.Name`). Also supports `GetX()` method matching and deep nesting (e.g., `OrderItemName` ? `Order.Item.Name`). - DONE
 - **ReverseMap** - Creates the inverse mapping automatically. Out of scope.
 - **Mapping Inheritance** - `Include`, `IncludeBase`, `IncludeAllDerived` for polymorphic hierarchies. Out of scope.
 - **Conditional Mapping** - `.Condition()` and `.PreCondition()` on ForMember. Out of scope.
@@ -86,9 +86,9 @@ Reviewed against https://docs.automapper.org/en/stable/ and documented for poten
 | `AddAutoMapper(typeof(...))` | Yes | Yes |
 | `AssertConfigurationIsValid()` | Yes | Yes |
 | `IConfigurationProvider` (for ProjectTo) | Yes | Yes |
-| Nested mappings (complex child types) | No | No |
-| Collection/List/Array mapping | No | No |
-| Flattening (PascalCase split) | No | No |
+| Nested mappings (complex child types) | Yes | Yes |
+| Collection/List/Array mapping | Yes | Yes |
+| Flattening (PascalCase split + GetX()) | Yes | Yes |
 
 ---
 
