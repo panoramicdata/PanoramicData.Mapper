@@ -18,13 +18,13 @@
 	<RepositoryType>git</RepositoryType>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageIcon>Panoramic Data.png</PackageIcon>
-	<Description>A minimal, API-compatible replacement for AutoMapper. Supports convention-based mapping, ForMember, Ignore, MapFrom, AfterMap, ProjectTo, and DI integration.</Description>
+	<Description>A comprehensive, API-compatible replacement for AutoMapper. Supports convention-based mapping, ForMember, Ignore, MapFrom, BeforeMap, AfterMap, ReverseMap, ConvertUsing, ConstructUsing, ForPath, ForCtorParam, Condition, PreCondition, NullSubstitute, value resolvers, type converters, mapping inheritance (Include/IncludeBase/IncludeAllDerived), value transformers, open generics, UseDestinationValue, MaxDepth, nested and collection mapping, flattening, ProjectTo for EF Core, IgnoreAllPropertiesWithAnInaccessibleSetter, AssertConfigurationIsValid, and DI integration.</Description>
 	<Copyright>Copyright © Panoramic Data Limited 2026</Copyright>
 	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	<PackageTags>Mapper;AutoMapper;ObjectMapping;PanoramicData</PackageTags>
+	<PackageTags>Mapper;AutoMapper;ObjectMapping;PanoramicData;Convention;Mapping;Projection;EFCore;DependencyInjection</PackageTags>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 </PropertyGroup>
 

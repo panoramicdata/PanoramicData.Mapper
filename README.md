@@ -1,6 +1,6 @@
 # PanoramicData.Mapper
 
-A minimal, MIT-licensed, API-compatible replacement for AutoMapper.
+A comprehensive, MIT-licensed, API-compatible replacement for AutoMapper.
 
 [![Nuget](https://img.shields.io/nuget/v/PanoramicData.Mapper)](https://www.nuget.org/packages/PanoramicData.Mapper/)
 [![Nuget](https://img.shields.io/nuget/dt/PanoramicData.Mapper)](https://www.nuget.org/packages/PanoramicData.Mapper/)
@@ -9,7 +9,7 @@ A minimal, MIT-licensed, API-compatible replacement for AutoMapper.
 
 ## Overview
 
-PanoramicData.Mapper provides a comprehensive, API-compatible replacement for AutoMapper with convention-based object mapping, explicit member configuration, and advanced features including mapping inheritance, value resolvers, type converters, and more.
+PanoramicData.Mapper is a comprehensive, API-compatible replacement for AutoMapper with convention-based object mapping, explicit member configuration, and advanced features including mapping inheritance, value resolvers, type converters, open generics, EF Core projection, and more.
 It is a clean-room, black-box reimplementation — no AutoMapper source code was referenced.
 
 ## Supported Features
@@ -41,6 +41,7 @@ It is a clean-room, black-box reimplementation — no AutoMapper source code was
 - **Collection/List/Array mapping** — `mapper.Map<List<Dest>>(sourceList)` maps collections automatically when an element-type map is registered
 - **Flattening** — PascalCase destination property names are split and traversed on the source graph (e.g. `CustomerName` → `Customer.Name`); also matches `GetX()` methods
 - **AssertConfigurationIsValid** — detects unmapped destination properties at startup
+- **IgnoreAllPropertiesWithAnInaccessibleSetter** — extension method to ignore all destination properties with non-public or absent setters
 - **DI integration** — `AddAutoMapper()` extension methods for `IServiceCollection`
 
 ## Installation
