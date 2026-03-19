@@ -309,6 +309,14 @@ public sealed class TypeMap
 		{
 			var srcGetter = CreateGetter(sourceProp);
 			var destSetter = CreateSetter(destProp);
+
+			// When one side is an enum and the other is its underlying integral type,
+			// we need an explicit conversion step (PropertyInfo.SetValue won't box-convert automatically).
+			if (IsEnumIntegralPair(sourceProp.PropertyType, destProp.PropertyType))
+			{
+				return BuildEnumIntegralAssignment(srcGetter, destSetter, sourceProp.PropertyType, destProp.PropertyType);
+			}
+
 			return (src, dest) =>
 			{
 				var value = srcGetter(src);
@@ -329,6 +337,55 @@ public sealed class TypeMap
 		}
 
 		return null;
+	}
+
+	private Action<object, object> BuildEnumIntegralAssignment(
+		Func<object, object?> srcGetter,
+		Action<object, object?> destSetter,
+		Type sourceType,
+		Type destType)
+	{
+		var srcUnderlying = Nullable.GetUnderlyingType(sourceType);
+		var dstUnderlying = Nullable.GetUnderlyingType(destType);
+		var srcCore = srcUnderlying ?? sourceType;
+		var dstCore = dstUnderlying ?? destType;
+		var destIsNullable = dstUnderlying is not null;
+
+		return (src, dest) =>
+		{
+			var value = srcGetter(src);
+
+			if (value is null)
+			{
+				// Nullable source with null value
+				if (destIsNullable)
+				{
+					destSetter(dest, null);
+				}
+				else
+				{
+					// Nullable source -> non-nullable dest: use default(0)
+					destSetter(dest, Activator.CreateInstance(destType));
+				}
+
+				return;
+			}
+
+			object converted;
+			if (srcCore.IsEnum && !dstCore.IsEnum)
+			{
+				// enum -> integral
+				converted = Convert.ChangeType(value, dstCore);
+			}
+			else
+			{
+				// integral -> enum
+				converted = Enum.ToObject(dstCore, value);
+			}
+
+			converted = ApplyValueTransformers(converted, destType)!;
+			destSetter(dest, converted);
+		};
 	}
 
 	private Action<object, object>? TryBuildNestedAssignment(PropertyInfo sourceProp, PropertyInfo destProp)
@@ -586,6 +643,36 @@ public sealed class TypeMap
 		// Handle nullable source
 		var underlyingSource = Nullable.GetUnderlyingType(sourceType);
 		if (underlyingSource is not null && destType.IsAssignableFrom(underlyingSource))
+		{
+			return true;
+		}
+
+		// Handle enum <-> integral type conversions (including nullable variants)
+		if (IsEnumIntegralPair(sourceType, destType))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Returns true when one type is an enum and the other is its underlying integral type,
+	/// including Nullable&lt;T&gt; wrappers on either or both sides.
+	/// </summary>
+	private static bool IsEnumIntegralPair(Type sourceType, Type destType)
+	{
+		var srcUnderlying = Nullable.GetUnderlyingType(sourceType) ?? sourceType;
+		var dstUnderlying = Nullable.GetUnderlyingType(destType) ?? destType;
+
+		// enum -> integral
+		if (srcUnderlying.IsEnum && Enum.GetUnderlyingType(srcUnderlying) == dstUnderlying)
+		{
+			return true;
+		}
+
+		// integral -> enum
+		if (dstUnderlying.IsEnum && Enum.GetUnderlyingType(dstUnderlying) == srcUnderlying)
 		{
 			return true;
 		}

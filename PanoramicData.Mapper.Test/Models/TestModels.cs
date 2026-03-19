@@ -445,3 +445,63 @@ public class DeepFlatDest
 	public int Id { get; set; }
 	public string OrderItemName { get; set; } = string.Empty;
 }
+
+// --- Enum mapping models ---
+
+public enum MyStatus
+{
+	Unknown = 0,
+	Active = 1,
+	Inactive = 2,
+	Deleted = 3
+}
+
+public class IntToEnumSource
+{
+	public int Status { get; set; }
+}
+
+public class EnumToIntSource
+{
+	public MyStatus Status { get; set; }
+}
+
+public class EnumDestination
+{
+	public MyStatus Status { get; set; }
+}
+
+public class IntDestination
+{
+	public int Status { get; set; }
+}
+
+public class NullableIntToNullableEnumSource
+{
+	public int? Status { get; set; }
+}
+
+public class NullableEnumDestination
+{
+	public MyStatus? Status { get; set; }
+}
+
+public class IntToNullableEnumSource
+{
+	public int Status { get; set; }
+}
+
+public class NullableIntToEnumSource
+{
+	public int? Status { get; set; }
+}
+
+public class EnumToEnumSource
+{
+	public MyStatus Status { get; set; }
+}
+
+public class EnumToEnumDestination
+{
+	public MyStatus Status { get; set; }
+}
