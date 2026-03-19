@@ -45,7 +45,7 @@ public class ValueTransformerTests
         dest.Description.Should().Be("WORLD");
     }
 
-    private class TrimProfile : Profile
+    private sealed class TrimProfile : Profile
     {
         public TrimProfile()
         {
@@ -54,7 +54,7 @@ public class ValueTransformerTests
         }
     }
 
-    private class MultiTransformProfile : Profile
+    private sealed class MultiTransformProfile : Profile
     {
         public MultiTransformProfile()
         {

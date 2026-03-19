@@ -91,7 +91,7 @@ public class NestedMappingTests
         act.Should().NotThrow();
     }
 
-    private class NestedProfile : Profile
+    private sealed class NestedProfile : Profile
     {
         public NestedProfile()
         {
@@ -100,7 +100,7 @@ public class NestedMappingTests
         }
     }
 
-    private class NestedCollectionProfile : Profile
+    private sealed class NestedCollectionProfile : Profile
     {
         public NestedCollectionProfile()
         {

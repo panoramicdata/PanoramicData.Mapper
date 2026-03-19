@@ -34,7 +34,7 @@ public class BeforeMapTests
         dest.Tag.Should().Be("action-tag");
     }
 
-    private class BeforeMapLambdaProfile : Profile
+    private sealed class BeforeMapLambdaProfile : Profile
     {
         public BeforeMapLambdaProfile()
         {
@@ -51,7 +51,7 @@ public class BeforeMapTests
         }
     }
 
-    private class BeforeMapActionProfile : Profile
+    private sealed class BeforeMapActionProfile : Profile
     {
         public BeforeMapActionProfile()
         {

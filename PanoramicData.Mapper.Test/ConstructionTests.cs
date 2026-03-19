@@ -32,7 +32,7 @@ public class ConstructionTests
         dest.Age.Should().Be(30);
     }
 
-    private class ConstructUsingProfile : Profile
+    private sealed class ConstructUsingProfile : Profile
     {
         public ConstructUsingProfile()
         {
@@ -41,7 +41,7 @@ public class ConstructionTests
         }
     }
 
-    private class CtorParamProfile : Profile
+    private sealed class CtorParamProfile : Profile
     {
         public CtorParamProfile()
         {

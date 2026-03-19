@@ -58,7 +58,7 @@ public class IgnoreInaccessibleSetterTests
         public int Value { get; set; }
     }
 
-    private class InaccessibleSetterProfile : Profile
+    private sealed class InaccessibleSetterProfile : Profile
     {
         public InaccessibleSetterProfile()
         {
@@ -80,7 +80,7 @@ public class IgnoreInaccessibleSetterTests
         public string InitOnly { get; init; } = "init-default";
     }
 
-    private class InitOnlyProfile : Profile
+    private sealed class InitOnlyProfile : Profile
     {
         public InitOnlyProfile()
         {

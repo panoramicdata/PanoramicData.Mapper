@@ -94,7 +94,7 @@ public class UpdateExistingTests
 		existing.Name.Should().Be("RT");
 	}
 
-	private class SimpleMapProfile : Profile
+	private sealed class SimpleMapProfile : Profile
 	{
 		public SimpleMapProfile()
 		{
@@ -102,7 +102,7 @@ public class UpdateExistingTests
 		}
 	}
 
-	private class IgnoreUpdateProfile : Profile
+	private sealed class IgnoreUpdateProfile : Profile
 	{
 		public IgnoreUpdateProfile()
 		{

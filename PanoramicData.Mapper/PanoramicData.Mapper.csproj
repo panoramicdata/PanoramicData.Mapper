@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 <PropertyGroup>
-	<TargetFramework>net10.0</TargetFramework>
+	<TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
 	<LangVersion>latest</LangVersion>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<Nullable>enable</Nullable>
@@ -18,7 +18,7 @@
 	<RepositoryType>git</RepositoryType>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageIcon>Panoramic Data.png</PackageIcon>
-	<Description>A comprehensive, API-compatible replacement for AutoMapper. Supports convention-based mapping, ForMember, Ignore, MapFrom, BeforeMap, AfterMap, ReverseMap, ConvertUsing, ConstructUsing, ForPath, ForCtorParam, Condition, PreCondition, NullSubstitute, value resolvers, type converters, mapping inheritance (Include/IncludeBase/IncludeAllDerived), value transformers, open generics, UseDestinationValue, MaxDepth, nested and collection mapping, flattening, ProjectTo for EF Core, IgnoreAllPropertiesWithAnInaccessibleSetter, AssertConfigurationIsValid, and DI integration.</Description>
+	<Description>A minimal, API-compatible replacement for AutoMapper. Supports convention-based mapping, ForMember, Ignore, MapFrom, AfterMap, ProjectTo, and DI integration. Targets net10.0 and netstandard2.0.</Description>
 	<Copyright>Copyright © Panoramic Data Limited 2026</Copyright>
 	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 	<IncludeSymbols>true</IncludeSymbols>

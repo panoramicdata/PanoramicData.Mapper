@@ -36,7 +36,7 @@ public class ValueResolverTests
             => $"{source.FirstName} {source.LastName}";
     }
 
-    private class ResolverTypeProfile : Profile
+    private sealed class ResolverTypeProfile : Profile
     {
         public ResolverTypeProfile()
         {
@@ -45,7 +45,7 @@ public class ValueResolverTests
         }
     }
 
-    private class ResolverInstanceProfile : Profile
+    private sealed class ResolverInstanceProfile : Profile
     {
         public ResolverInstanceProfile()
         {

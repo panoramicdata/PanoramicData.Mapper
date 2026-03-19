@@ -24,7 +24,7 @@ public sealed class Mapper : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TDestination>(object source)
 	{
-		ArgumentNullException.ThrowIfNull(source);
+		if (source is null) throw new ArgumentNullException(nameof(source));
 
 		var sourceType = source.GetType();
 		var destType = typeof(TDestination);
@@ -48,7 +48,7 @@ public sealed class Mapper : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TSource, TDestination>(TSource source)
 	{
-		ArgumentNullException.ThrowIfNull(source);
+		if (source is null) throw new ArgumentNullException(nameof(source));
 
 		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination));
 
@@ -70,8 +70,8 @@ public sealed class Mapper : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(destination);
+		if (source is null) throw new ArgumentNullException(nameof(source));
+		if (destination is null) throw new ArgumentNullException(nameof(destination));
 
 		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination))
 			?? throw new AutoMapperMappingException(
@@ -83,8 +83,8 @@ public sealed class Mapper : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TSource, TDestination>(TSource source, Action<IMappingOperationOptions<TSource, TDestination>> opts)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(opts);
+		if (source is null) throw new ArgumentNullException(nameof(source));
+		if (opts is null) throw new ArgumentNullException(nameof(opts));
 
 		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination));
 
@@ -116,7 +116,7 @@ public sealed class Mapper : IMapper
 	/// <inheritdoc />
 	public object Map(object source, Type sourceType, Type destinationType)
 	{
-		ArgumentNullException.ThrowIfNull(source);
+		if (source is null) throw new ArgumentNullException(nameof(source));
 
 		var typeMap = _configuration.FindTypeMap(sourceType, destinationType);
 
@@ -138,8 +138,8 @@ public sealed class Mapper : IMapper
 	/// <inheritdoc />
 	public object Map(object source, object destination, Type sourceType, Type destinationType)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(destination);
+		if (source is null) throw new ArgumentNullException(nameof(source));
+		if (destination is null) throw new ArgumentNullException(nameof(destination));
 
 		var typeMap = _configuration.FindTypeMap(sourceType, destinationType)
 			?? throw new AutoMapperMappingException(

@@ -35,7 +35,7 @@ public class IgnoreTests
 		dest.Secret.Should().Be("original");
 	}
 
-	private class TestProfile : Profile
+	private sealed class TestProfile : Profile
 	{
 		public TestProfile()
 		{

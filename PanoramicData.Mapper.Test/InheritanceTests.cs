@@ -49,7 +49,7 @@ public class InheritanceTests
         dest.Breed.Should().Be("Poodle");
     }
 
-    private class IncludeProfile : Profile
+    private sealed class IncludeProfile : Profile
     {
         public IncludeProfile()
         {
@@ -60,7 +60,7 @@ public class InheritanceTests
         }
     }
 
-    private class IncludeBaseProfile : Profile
+    private sealed class IncludeBaseProfile : Profile
     {
         public IncludeBaseProfile()
         {
@@ -71,7 +71,7 @@ public class InheritanceTests
         }
     }
 
-    private class IncludeAllDerivedProfile : Profile
+    private sealed class IncludeAllDerivedProfile : Profile
     {
         public IncludeAllDerivedProfile()
         {

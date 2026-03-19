@@ -122,7 +122,7 @@ public class CollectionMappingTests
         act.Should().Throw<AutoMapperMappingException>();
     }
 
-    private class ElementProfile : Profile
+    private sealed class ElementProfile : Profile
     {
         public ElementProfile()
         {

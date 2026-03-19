@@ -51,7 +51,7 @@ public class AfterMapTests
 		}
 	}
 
-	private class AfterMapGenericProfile : Profile
+	private sealed class AfterMapGenericProfile : Profile
 	{
 		public AfterMapGenericProfile()
 		{

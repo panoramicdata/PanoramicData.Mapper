@@ -505,3 +505,35 @@ public class EnumToEnumDestination
 {
 	public MyStatus Status { get; set; }
 }
+
+// --- Flattening cache tests ---
+
+// Two different source types that both have a nested "Customer.Name" shape,
+// used to verify the cache key includes the source type.
+public class CustomerSourceA
+{
+	public int Id { get; set; }
+	public CustomerNameSourceA Customer { get; set; } = new();
+}
+
+public class CustomerNameSourceA
+{
+	public string Name { get; set; } = string.Empty;
+}
+
+public class CustomerSourceB
+{
+	public int Id { get; set; }
+	public CustomerNameSourceB Customer { get; set; } = new();
+}
+
+public class CustomerNameSourceB
+{
+	public string Name { get; set; } = string.Empty;
+}
+
+public class FlatCustomerDestAB
+{
+	public int Id { get; set; }
+	public string CustomerName { get; set; } = string.Empty;
+}
