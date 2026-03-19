@@ -56,7 +56,7 @@ public class ConditionalMappingTests
         dest.Age.Should().Be(30);
     }
 
-    private class ConditionProfile : Profile
+    private sealed class ConditionProfile : Profile
     {
         public ConditionProfile()
         {
@@ -69,7 +69,7 @@ public class ConditionalMappingTests
         }
     }
 
-    private class PreConditionProfile : Profile
+    private sealed class PreConditionProfile : Profile
     {
         public PreConditionProfile()
         {

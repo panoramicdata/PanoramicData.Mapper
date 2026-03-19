@@ -37,7 +37,7 @@ public class OpenGenericTests
         stringDest.Label.Should().Be("String");
     }
 
-    private class OpenGenericProfile : Profile
+    private sealed class OpenGenericProfile : Profile
     {
         public OpenGenericProfile()
         {

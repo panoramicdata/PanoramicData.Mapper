@@ -31,7 +31,7 @@ public class ReverseMapTests
         config.AssertConfigurationIsValid();
     }
 
-    private class ReverseMapProfile : Profile
+    private sealed class ReverseMapProfile : Profile
     {
         public ReverseMapProfile()
         {

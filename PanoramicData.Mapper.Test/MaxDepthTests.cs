@@ -64,7 +64,7 @@ public class MaxDepthTests
         dest.Child.Child.Should().BeNull();
     }
 
-    private class MaxDepthProfile : Profile
+    private sealed class MaxDepthProfile : Profile
     {
         public MaxDepthProfile()
         {

@@ -95,7 +95,7 @@ public class ProjectToTests
 		context.SaveChanges();
 	}
 
-	private class SimpleProjectProfile : Profile
+	private sealed class SimpleProjectProfile : Profile
 	{
 		public SimpleProjectProfile()
 		{
@@ -103,7 +103,7 @@ public class ProjectToTests
 		}
 	}
 
-	private class PersonProjectProfile : Profile
+	private sealed class PersonProjectProfile : Profile
 	{
 		public PersonProjectProfile()
 		{
@@ -112,7 +112,7 @@ public class ProjectToTests
 		}
 	}
 
-	private class IgnoreProjectProfile : Profile
+	private sealed class IgnoreProjectProfile : Profile
 	{
 		public IgnoreProjectProfile()
 		{

@@ -59,7 +59,7 @@ public class TypeConverterTests
             => new() { Result = string.Concat(Enumerable.Repeat(source.Value, source.Multiplier)) };
     }
 
-    private class LambdaConverterProfile : Profile
+    private sealed class LambdaConverterProfile : Profile
     {
         public LambdaConverterProfile()
         {
@@ -71,7 +71,7 @@ public class TypeConverterTests
         }
     }
 
-    private class TypeConverterProfile : Profile
+    private sealed class TypeConverterProfile : Profile
     {
         public TypeConverterProfile()
         {
@@ -80,7 +80,7 @@ public class TypeConverterTests
         }
     }
 
-    private class ConverterInstanceProfile : Profile
+    private sealed class ConverterInstanceProfile : Profile
     {
         public ConverterInstanceProfile()
         {

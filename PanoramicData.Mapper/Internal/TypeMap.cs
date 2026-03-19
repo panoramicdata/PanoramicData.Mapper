@@ -251,13 +251,9 @@ public sealed class TypeMap
 		}
 
 		// ForPath assignments
-		foreach (var kvp in PathMappings)
+		foreach (var pathMapping in PathMappings.Values.Where(pm => pm.PathSegments is not null && pm.PathSegments.Length > 0))
 		{
-			var pathMapping = kvp.Value;
-			if (pathMapping.PathSegments is not null && pathMapping.PathSegments.Length > 0)
-			{
-				assignments.Add(BuildForPathAssignment(pathMapping));
-			}
+			assignments.Add(BuildForPathAssignment(pathMapping));
 		}
 
 		return (src, dest) =>
@@ -554,7 +550,7 @@ public sealed class TypeMap
 			currentType = prop.PropertyType;
 		}
 
-		var leafProp = currentType.GetProperty(segments[^1], BindingFlags.Public | BindingFlags.Instance);
+		var leafProp = currentType.GetProperty(segments[segments.Length - 1], BindingFlags.Public | BindingFlags.Instance);
 		leafProp?.SetValue(current, value);
 	}
 
@@ -807,7 +803,10 @@ public sealed class TypeMap
 	{
 		foreach (var kvp in PropertyMappings)
 		{
-			derived.PropertyMappings.TryAdd(kvp.Key, kvp.Value);
+			if (!derived.PropertyMappings.ContainsKey(kvp.Key))
+			{
+				derived.PropertyMappings.Add(kvp.Key, kvp.Value);
+			}
 		}
 
 		foreach (var ignored in IgnoredMembers)
@@ -835,10 +834,21 @@ public sealed class TypeMap
 
 	private readonly record struct FlattenedAccessor(Func<object, object?> Getter, Type ReturnType);
 
+	private static readonly Dictionary<(string DestPropName, Type SourceType), FlattenedAccessor?> _flattenedAccessorCache
+		= new();
+
 	private static FlattenedAccessor? TryBuildFlattenedGetter(string destPropName, Type sourceType)
 	{
+		var key = (destPropName, sourceType);
+		if (_flattenedAccessorCache.TryGetValue(key, out var cached))
+		{
+			return cached;
+		}
+
 		var segments = SplitPascalCase(destPropName);
-		return TryBuildAccessorChain(segments, 0, sourceType);
+		var result = TryBuildAccessorChain(segments, 0, sourceType);
+		_flattenedAccessorCache[key] = result;
+		return result;
 	}
 
 	private static FlattenedAccessor? TryBuildAccessorChain(List<string> segments, int startIndex, Type currentType)
@@ -866,7 +876,11 @@ public sealed class TypeMap
 				}
 			}
 
+#if NET5_0_OR_GREATER
 			var method = currentType.GetMethod($"Get{prefix}", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+#else
+			var method = currentType.GetMethod($"Get{prefix}", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+#endif
 			if (method is not null && method.ReturnType != typeof(void))
 			{
 				var result = BuildPropertyAccessor(segments, startIndex + length, remainingConsumed, obj => method.Invoke(obj, null), method.ReturnType);
@@ -916,12 +930,12 @@ public sealed class TypeMap
 		{
 			if (char.IsUpper(name[i]))
 			{
-				segments.Add(name[start..i]);
+				segments.Add(name.Substring(start, i - start));
 				start = i;
 			}
 		}
 
-		segments.Add(name[start..]);
+		segments.Add(name.Substring(start));
 		return segments;
 	}
 

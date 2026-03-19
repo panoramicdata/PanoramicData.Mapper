@@ -18,8 +18,8 @@ public static class Extensions
 		this IQueryable source,
 		IConfigurationProvider configurationProvider)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(configurationProvider);
+		if (source is null) throw new ArgumentNullException(nameof(source));
+		if (configurationProvider is null) throw new ArgumentNullException(nameof(configurationProvider));
 
 		var sourceType = source.ElementType;
 		var destType = typeof(TDestination);

@@ -45,7 +45,7 @@ public class ForPathTests
         config.AssertConfigurationIsValid();
     }
 
-    private class ForPathProfile : Profile
+    private sealed class ForPathProfile : Profile
     {
         public ForPathProfile()
         {

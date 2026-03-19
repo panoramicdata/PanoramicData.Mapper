@@ -34,7 +34,7 @@ public class NullSubstituteTests
         dest.Email.Should().Be("alice@test.com");
     }
 
-    private class NullSubProfile : Profile
+    private sealed class NullSubProfile : Profile
     {
         public NullSubProfile()
         {

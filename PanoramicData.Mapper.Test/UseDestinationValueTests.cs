@@ -20,7 +20,7 @@ public class UseDestinationValueTests
         dest.Existing.Should().Be("keep-me"); // Preserved because UseDestinationValue + Ignore
     }
 
-    private class UseDestProfile : Profile
+    private sealed class UseDestProfile : Profile
     {
         public UseDestProfile()
         {
