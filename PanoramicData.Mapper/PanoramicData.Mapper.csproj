@@ -26,6 +26,7 @@
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageTags>Mapper;AutoMapper;ObjectMapping;PanoramicData;Convention;Mapping;Projection;EFCore;DependencyInjection</PackageTags>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageReleaseNotes>10.0.15: Added implicit self-mapping (T -> T) and implicit type conversions (numeric, enum, string, nullable) for convention-mapped properties. See https://github.com/panoramicdata/PanoramicData.Mapper/blob/main/CHANGELOG.md for details.</PackageReleaseNotes>
 </PropertyGroup>
 
 <ItemGroup>

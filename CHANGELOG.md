@@ -1,0 +1,19 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+## [10.0.15] - 2026-03-31
+
+### Added
+
+- Implicit self-mapping (T -> T): property-by-property copy without requiring explicit `CreateMap<T, T>()`, including support for `required` properties and inherited members
+- Implicit type conversions for convention-mapped properties:
+  - Numeric widening/narrowing (int <-> long, int <-> double, decimal <-> double, etc.)
+  - Enum <-> integral type mapping (int <-> enum, including nullable variants)
+  - Enum <-> string mapping
+  - Primitive <-> string mapping (int -> string, bool <-> string, etc.)
+  - Nullable to non-nullable mapping (null defaults to `default(T)`)

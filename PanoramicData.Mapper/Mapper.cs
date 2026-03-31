@@ -1,5 +1,6 @@
 using PanoramicData.Mapper.Internal;
 using System.Collections;
+using System.Reflection;
 
 namespace PanoramicData.Mapper;
 
@@ -41,6 +42,12 @@ public sealed class Mapper : IMapper
 			return (TDestination)collectionResult;
 		}
 
+		// Self-mapping fallback: T -> T copies properties without requiring explicit CreateMap
+		if (sourceType == destType)
+		{
+			return (TDestination)SelfMap(source, sourceType);
+		}
+
 		throw new AutoMapperMappingException(
 			$"Missing type map configuration or unsupported mapping. Mapping types: {sourceType.FullName} -> {destType.FullName}");
 	}
@@ -63,6 +70,12 @@ public sealed class Mapper : IMapper
 			return (TDestination)collectionResult;
 		}
 
+		// Self-mapping fallback: T -> T copies properties without requiring explicit CreateMap
+		if (typeof(TSource) == typeof(TDestination))
+		{
+			return (TDestination)(object)SelfMap(source, typeof(TSource));
+		}
+
 		throw new AutoMapperMappingException(
 			$"Missing type map configuration or unsupported mapping. Mapping types: {typeof(TSource).FullName} -> {typeof(TDestination).FullName}");
 	}
@@ -73,11 +86,22 @@ public sealed class Mapper : IMapper
 		ArgumentNullException.ThrowIfNull(source);
 		ArgumentNullException.ThrowIfNull(destination);
 
-		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination))
-			?? throw new AutoMapperMappingException(
-				$"Missing type map configuration or unsupported mapping. Mapping types: {typeof(TSource).FullName} -> {typeof(TDestination).FullName}");
+		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination));
 
-		return (TDestination)typeMap.MapToExisting(source, destination);
+		if (typeMap is not null)
+		{
+			return (TDestination)typeMap.MapToExisting(source, destination);
+		}
+
+		// Self-mapping fallback: T -> T copies properties without requiring explicit CreateMap
+		if (typeof(TSource) == typeof(TDestination))
+		{
+			SelfMapToExisting(source, destination, typeof(TSource));
+			return destination;
+		}
+
+		throw new AutoMapperMappingException(
+			$"Missing type map configuration or unsupported mapping. Mapping types: {typeof(TSource).FullName} -> {typeof(TDestination).FullName}");
 	}
 
 	/// <inheritdoc />
@@ -90,10 +114,22 @@ public sealed class Mapper : IMapper
 
 		if (typeMap is null)
 		{
-			// Try collection mapping — options not applicable for collections
+			// Try collection mapping - options not applicable for collections
 			if (TryMapCollection(source, typeof(TSource), typeof(TDestination), out var collectionResult))
 			{
 				return (TDestination)collectionResult;
+			}
+
+			// Self-mapping fallback: T -> T copies properties without requiring explicit CreateMap
+			if (typeof(TSource) == typeof(TDestination))
+			{
+				var selfOptions = new MappingOperationOptions<TSource, TDestination>();
+				opts(selfOptions);
+				var selfDest = (TDestination)SelfMap(source, typeof(TSource));
+				selfOptions.ExecuteBeforeMapActions(source, selfDest);
+				SelfMapToExisting(source, selfDest, typeof(TSource));
+				selfOptions.ExecuteAfterMapActions(source, selfDest);
+				return selfDest;
 			}
 
 			throw new AutoMapperMappingException(
@@ -131,6 +167,12 @@ public sealed class Mapper : IMapper
 			return collectionResult;
 		}
 
+		// Self-mapping fallback: T -> T copies properties without requiring explicit CreateMap
+		if (sourceType == destinationType)
+		{
+			return SelfMap(source, sourceType);
+		}
+
 		throw new AutoMapperMappingException(
 			$"Missing type map configuration or unsupported mapping. Mapping types: {sourceType.FullName} -> {destinationType.FullName}");
 	}
@@ -141,11 +183,22 @@ public sealed class Mapper : IMapper
 		ArgumentNullException.ThrowIfNull(source);
 		ArgumentNullException.ThrowIfNull(destination);
 
-		var typeMap = _configuration.FindTypeMap(sourceType, destinationType)
-			?? throw new AutoMapperMappingException(
-				$"Missing type map configuration or unsupported mapping. Mapping types: {sourceType.FullName} -> {destinationType.FullName}");
+		var typeMap = _configuration.FindTypeMap(sourceType, destinationType);
 
-		return typeMap.MapToExisting(source, destination);
+		if (typeMap is not null)
+		{
+			return typeMap.MapToExisting(source, destination);
+		}
+
+		// Self-mapping fallback: T -> T copies properties without requiring explicit CreateMap
+		if (sourceType == destinationType)
+		{
+			SelfMapToExisting(source, destination, sourceType);
+			return destination;
+		}
+
+		throw new AutoMapperMappingException(
+			$"Missing type map configuration or unsupported mapping. Mapping types: {sourceType.FullName} -> {destinationType.FullName}");
 	}
 
 	private bool TryMapCollection(object source, Type sourceType, Type destType, out object result)
@@ -166,5 +219,32 @@ public sealed class Mapper : IMapper
 
 		result = TypeMap.MapCollection((IEnumerable)source, elemTypeMap, destType, destElemType);
 		return true;
+	}
+
+	/// <summary>
+	/// Creates a new instance and copies all public read/write properties from source.
+	/// </summary>
+	private static object SelfMap(object source, Type type)
+	{
+		var destination = Activator.CreateInstance(type)
+			?? throw new AutoMapperMappingException(
+				$"Could not create an instance of type {type.FullName}. Ensure it has a parameterless constructor.");
+
+		SelfMapToExisting(source, destination, type);
+		return destination;
+	}
+
+	/// <summary>
+	/// Copies all public read/write properties from source to an existing destination of the same type.
+	/// </summary>
+	private static void SelfMapToExisting(object source, object destination, Type type)
+	{
+		foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+		{
+			if (prop.CanRead && prop.CanWrite)
+			{
+				prop.SetValue(destination, prop.GetValue(source));
+			}
+		}
 	}
 }

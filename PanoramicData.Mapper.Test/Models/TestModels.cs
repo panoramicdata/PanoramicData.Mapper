@@ -622,3 +622,26 @@ public class DoubleFromDecimalDestination
 {
 	public double Amount { get; set; }
 }
+
+// --- Self-mapping models ---
+
+public class SelfMapEntity
+{
+	public int Id { get; set; }
+	public string Name { get; set; } = string.Empty;
+	public decimal Amount { get; set; }
+}
+
+public class IdentifiedStoreItem
+{
+	public int Id { get; set; }
+	public DateTime CreatedAt { get; set; }
+}
+
+public class DataSourceGraphStoreItem : IdentifiedStoreItem
+{
+	public required string Name { get; set; }
+	public required string Title { get; set; }
+	public required int Width { get; set; }
+	public bool IsActive { get; set; }
+}
