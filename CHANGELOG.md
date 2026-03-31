@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [10.0.16] - 2026-03-31
+
+### Fixed
+
+- `ConvertValue` no longer throws `FormatException`/`ArgumentException` when convention-matched string properties can't convert to numeric or enum destinations - returns `default(T)` instead
+
 ## [10.0.15] - 2026-03-31
 
 ### Added

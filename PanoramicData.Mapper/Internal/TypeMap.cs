@@ -674,7 +674,14 @@ public sealed class TypeMap
 		// String -> enum
 		if (valueType == typeof(string) && dstCore.IsEnum)
 		{
-			return Enum.Parse(dstCore, (string)value);
+			var str = (string)value;
+			if (str.Length > 0 && Enum.TryParse(dstCore, str, out var parsed))
+			{
+				return parsed;
+			}
+
+			// Unparseable string - return default for the enum
+			return Activator.CreateInstance(destType) ?? Activator.CreateInstance(dstCore)!;
 		}
 
 		// Integral -> enum (Convert.ChangeType cannot handle this)
@@ -686,7 +693,15 @@ public sealed class TypeMap
 		// Enum -> integral, numeric widening/narrowing, string -> numeric, etc.
 		if (value is IConvertible)
 		{
-			return Convert.ChangeType(value, dstCore);
+			try
+			{
+				return Convert.ChangeType(value, dstCore);
+			}
+			catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+			{
+				// Conversion failed (e.g. empty string -> int) - return default
+				return destType.IsValueType ? Activator.CreateInstance(destType) : null;
+			}
 		}
 
 		return value;

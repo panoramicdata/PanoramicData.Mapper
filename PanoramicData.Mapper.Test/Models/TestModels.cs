@@ -645,3 +645,35 @@ public class DataSourceGraphStoreItem : IdentifiedStoreItem
 	public required int Width { get; set; }
 	public bool IsActive { get; set; }
 }
+
+// --- Convention mismatch models (string -> numeric/enum by name) ---
+
+public enum ResourceGroupStatusType
+{
+	Unknown,
+	Active,
+	Inactive
+}
+
+public class StringPropertySource
+{
+	public string MonitorObjectId { get; set; } = string.Empty;
+	public string GroupStatus { get; set; } = string.Empty;
+	public string Count { get; set; } = string.Empty;
+}
+
+public class MismatchedNumericDestination
+{
+	public int MonitorObjectId { get; set; }
+	public int Count { get; set; }
+}
+
+public class MismatchedNullableIntDestination
+{
+	public int? MonitorObjectId { get; set; }
+}
+
+public class MismatchedEnumDestination
+{
+	public ResourceGroupStatusType GroupStatus { get; set; }
+}
