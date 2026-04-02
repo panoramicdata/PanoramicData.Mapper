@@ -114,7 +114,38 @@ public static class Extensions
 			return expression;
 		}
 
-		return Expression.Convert(expression, targetType);
+		var sourceType = expression.Type;
+		var sourceCore = Nullable.GetUnderlyingType(sourceType) ?? sourceType;
+		var targetCore = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+		// Any -> string: use ToString() (handles nullable, numeric, enum, etc.)
+		if (targetCore == typeof(string))
+		{
+			// For nullable source, coalesce to empty string to avoid NullReferenceException
+			if (Nullable.GetUnderlyingType(sourceType) is not null)
+			{
+				// (src.Prop == null) ? null : src.Prop.Value.ToString()
+				var hasValue = Expression.Property(expression, "HasValue");
+				var value = Expression.Property(expression, "Value");
+				var toString = Expression.Call(value, nameof(object.ToString), Type.EmptyTypes);
+				return Expression.Condition(hasValue, toString, Expression.Constant(null, typeof(string)));
+			}
+
+			return Expression.Call(expression, nameof(object.ToString), Type.EmptyTypes);
+		}
+
+		// Nullable<T> -> T or T -> Nullable<T> where T is the same core type
+		// or numeric/enum conversions where Expression.Convert has a CLR operator
+		try
+		{
+			return Expression.Convert(expression, targetType);
+		}
+		catch (InvalidOperationException)
+		{
+			// No coercion operator exists (e.g. string -> double?) - skip this binding
+			// by returning a default value expression for the target type
+			return Expression.Default(targetType);
+		}
 	}
 
 	private sealed class ParameterReplacer(ParameterExpression oldParam, ParameterExpression newParam) : ExpressionVisitor

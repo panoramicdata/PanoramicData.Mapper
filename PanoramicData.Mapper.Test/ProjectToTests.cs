@@ -121,16 +121,43 @@ public class ProjectToTests
 				.ForMember(d => d.Timestamp, opt => opt.Ignore());
 		}
 	}
+
+	[Fact]
+	public void ProjectTo_NullableDoubleToString_ProjectsWithoutError()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new NullableDoubleToStringProfile()));
+
+		using var context = CreateContext();
+		context.NullableDoubles.Add(new NullableDoubleEntity { Id = 1, Score = 3.14, Name = "Pi" });
+		context.NullableDoubles.Add(new NullableDoubleEntity { Id = 2, Score = null, Name = "Null" });
+		context.SaveChanges();
+
+		var projected = context.NullableDoubles
+			.ProjectTo<StringScoreDestination>(config)
+			.ToList();
+
+		projected.Should().HaveCount(2);
+		projected[0].Name.Should().Be("Pi");
+		projected[1].Name.Should().Be("Null");
+	}
+
+	private class NullableDoubleToStringProfile : Profile
+	{
+		public NullableDoubleToStringProfile() => CreateMap<NullableDoubleEntity, StringScoreDestination>();
+	}
 }
 
 public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options)
 {
 	public DbSet<SimpleSource> Sources { get; set; } = null!;
 	public DbSet<PersonSource> Persons { get; set; } = null!;
+	public DbSet<NullableDoubleEntity> NullableDoubles { get; set; } = null!;
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
 		modelBuilder.Entity<SimpleSource>().HasKey(e => e.Id);
 		modelBuilder.Entity<PersonSource>().HasKey(e => e.FirstName);
+		modelBuilder.Entity<NullableDoubleEntity>().HasKey(e => e.Id);
 	}
 }

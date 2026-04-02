@@ -677,3 +677,19 @@ public class MismatchedEnumDestination
 {
 	public ResourceGroupStatusType GroupStatus { get; set; }
 }
+
+// --- ProjectTo type mismatch models ---
+
+public class NullableDoubleEntity
+{
+	public int Id { get; set; }
+	public double? Score { get; set; }
+	public string Name { get; set; } = string.Empty;
+}
+
+public class StringScoreDestination
+{
+	public int Id { get; set; }
+	public string Score { get; set; } = string.Empty;
+	public string Name { get; set; } = string.Empty;
+}
