@@ -146,6 +146,63 @@ public class ProjectToTests
 	{
 		public NullableDoubleToStringProfile() => CreateMap<NullableDoubleEntity, StringScoreDestination>();
 	}
+
+	[Fact]
+	public void ProjectTo_NullableToNonNullable_WithValues_ProjectsCorrectly()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new NullablePortProfile()));
+
+		using var context = CreateContext();
+		context.NullablePorts.Add(new NullablePortEntity
+		{
+			Id = 1,
+			TrafficSentKbps = 123.45,
+			ClientCount = 10,
+			IsOnline = true
+		});
+		context.SaveChanges();
+
+		var projected = context.NullablePorts
+			.ProjectTo<NonNullablePortDto>(config)
+			.ToList();
+
+		projected.Should().ContainSingle();
+		projected[0].TrafficSentKbps.Should().Be(123.45);
+		projected[0].ClientCount.Should().Be(10);
+		projected[0].IsOnline.Should().BeTrue();
+	}
+
+	[Fact]
+	public void ProjectTo_NullableToNonNullable_WithNulls_DefaultsToZeroOrFalse()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new NullablePortProfile()));
+
+		using var context = CreateContext();
+		context.NullablePorts.Add(new NullablePortEntity
+		{
+			Id = 1,
+			TrafficSentKbps = null,
+			ClientCount = null,
+			IsOnline = null
+		});
+		context.SaveChanges();
+
+		var projected = context.NullablePorts
+			.ProjectTo<NonNullablePortDto>(config)
+			.ToList();
+
+		projected.Should().ContainSingle();
+		projected[0].TrafficSentKbps.Should().Be(0.0);
+		projected[0].ClientCount.Should().Be(0);
+		projected[0].IsOnline.Should().BeFalse();
+	}
+
+	private class NullablePortProfile : Profile
+	{
+		public NullablePortProfile() => CreateMap<NullablePortEntity, NonNullablePortDto>();
+	}
 }
 
 public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options)
@@ -153,11 +210,13 @@ public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(
 	public DbSet<SimpleSource> Sources { get; set; } = null!;
 	public DbSet<PersonSource> Persons { get; set; } = null!;
 	public DbSet<NullableDoubleEntity> NullableDoubles { get; set; } = null!;
+	public DbSet<NullablePortEntity> NullablePorts { get; set; } = null!;
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
 		modelBuilder.Entity<SimpleSource>().HasKey(e => e.Id);
 		modelBuilder.Entity<PersonSource>().HasKey(e => e.FirstName);
 		modelBuilder.Entity<NullableDoubleEntity>().HasKey(e => e.Id);
+		modelBuilder.Entity<NullablePortEntity>().HasKey(e => e.Id);
 	}
 }

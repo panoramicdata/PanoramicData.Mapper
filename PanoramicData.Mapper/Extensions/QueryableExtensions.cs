@@ -134,6 +134,27 @@ public static class Extensions
 			return Expression.Call(expression, nameof(object.ToString), Type.EmptyTypes);
 		}
 
+		// Nullable<T> -> non-nullable value type: coalesce to default(T) so EF Core
+		// generates COALESCE in SQL instead of throwing on NULL materialization
+		if (sourceCore != sourceType && targetCore == targetType && targetType.IsValueType)
+		{
+			var coalesced = Expression.Coalesce(expression, Expression.Default(sourceCore));
+			if (sourceCore == targetType)
+			{
+				return coalesced;
+			}
+
+			// Different value type (e.g. int? -> double): coalesce then convert
+			try
+			{
+				return Expression.Convert(coalesced, targetType);
+			}
+			catch (InvalidOperationException)
+			{
+				return Expression.Default(targetType);
+			}
+		}
+
 		// Nullable<T> -> T or T -> Nullable<T> where T is the same core type
 		// or numeric/enum conversions where Expression.Convert has a CLR operator
 		try

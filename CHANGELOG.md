@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [10.0.20] - 2026-03-31
+
+### Fixed
+
+- `ProjectTo` now coalesces `Nullable<T>` source properties to `default(T)` when projecting to non-nullable destination properties (e.g. `double?` -> `double`), generating `COALESCE` in SQL instead of throwing `InvalidOperationException: Nullable object must have a value`
+
 ## [10.0.19] - 2026-03-31
 
 ### Added

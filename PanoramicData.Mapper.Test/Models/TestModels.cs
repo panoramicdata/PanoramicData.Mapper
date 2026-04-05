@@ -693,3 +693,21 @@ public class StringScoreDestination
 	public string Score { get; set; } = string.Empty;
 	public string Name { get; set; } = string.Empty;
 }
+
+// --- ProjectTo nullable-to-non-nullable models ---
+
+public class NullablePortEntity
+{
+	public int Id { get; set; }
+	public double? TrafficSentKbps { get; set; }
+	public int? ClientCount { get; set; }
+	public bool? IsOnline { get; set; }
+}
+
+public class NonNullablePortDto
+{
+	public int Id { get; set; }
+	public double TrafficSentKbps { get; set; }
+	public int ClientCount { get; set; }
+	public bool IsOnline { get; set; }
+}
