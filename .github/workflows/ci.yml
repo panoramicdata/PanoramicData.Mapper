@@ -2,51 +2,66 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
+    tags: ['[0-9]*.[0-9]*.[0-9]*']
   pull_request:
-    branches: [ "main" ]
-
-env:
-  CONFIGURATION: Release
-  DOTNET_VERSION: '10.0.x'
+    branches: [main]
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  build:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      checks: write
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
+    - name: Checkout
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: 10.0.x
 
     - name: Restore
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+      run: dotnet build --configuration Release --no-restore
 
-    - name: Test with coverage
-      run: >
-        dotnet test
-        --configuration ${{ env.CONFIGURATION }}
-        --no-build
-        --collect:"XPlat Code Coverage"
-        --results-directory ./TestResults
+    - name: Test
+      run: dotnet test --configuration Release --no-build --verbosity normal
 
-    - name: Upload coverage to Codacy
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: codacy/codacy-coverage-reporter-action@v1
+    - name: Pack
+      run: dotnet pack --configuration Release --no-build --output ./artifacts
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
       with:
-        project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-        coverage-reports: ./TestResults/*/coverage.cobertura.xml
+        name: packages
+        path: ./artifacts/*.nupkg
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      id-token: write
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: packages
+        path: ./artifacts
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Login to NuGet
+      id: login
+      uses: NuGet/login@v1
+      with:
+        user: david_n_m_bond
+
+    - name: Push to NuGet
+      run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

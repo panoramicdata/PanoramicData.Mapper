@@ -59,6 +59,10 @@ public sealed class PropertyMapping
 	/// </summary>
 	public string[]? PathSegments { get; set; }
 
+	/// <summary>
+	/// Initializes a new instance of the <see cref="PropertyMapping"/> class.
+	/// </summary>
+	/// <param name="destinationMemberName">The destination member name that this mapping targets.</param>
 	public PropertyMapping(string destinationMemberName)
 	{
 		DestinationMemberName = destinationMemberName;

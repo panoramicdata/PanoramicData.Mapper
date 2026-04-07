@@ -99,6 +99,11 @@ public sealed class TypeMap
 
 	private Func<object, object, object>? _compiledMapper;
 
+	/// <summary>
+	/// Initializes a new instance of the <see cref="TypeMap"/> class.
+	/// </summary>
+	/// <param name="sourceType">The source type for the mapping.</param>
+	/// <param name="destinationType">The destination type for the mapping.</param>
 	public TypeMap(Type sourceType, Type destinationType)
 	{
 		SourceType = sourceType;

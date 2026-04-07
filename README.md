@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # PanoramicData.Mapper
 
 A comprehensive, MIT-licensed, API-compatible replacement for AutoMapper.
