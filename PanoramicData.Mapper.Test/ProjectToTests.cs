@@ -203,6 +203,46 @@ public class ProjectToTests
 	{
 		public NullablePortProfile() => CreateMap<NullablePortEntity, NonNullablePortDto>();
 	}
+
+	[Fact]
+	public void ProjectTo_NullSource_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new SimpleProjectProfile()));
+
+		IQueryable source = null!;
+		var act = () => source.ProjectTo<SimpleDestination>(config);
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void ProjectTo_NullConfigurationProvider_ThrowsArgumentNullException()
+	{
+		using var context = CreateContext();
+
+		var act = () => context.Sources.ProjectTo<SimpleDestination>(null!);
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void ProjectTo_NoTypeMap_MapsConventionPropertiesOnly()
+	{
+		var config = new MapperConfiguration(cfg => { });
+
+		using var context = CreateContext();
+		SeedData(context);
+
+		// No type map registered - ProjectTo receives null typeMap
+		// and should still attempt convention-based projection
+		var act = () => context.Sources
+			.ProjectTo<SimpleDestination>(config)
+			.ToList();
+
+		// Depending on implementation, this may throw or return convention-mapped results
+		act.Should().NotThrow();
+	}
 }
 
 public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options)

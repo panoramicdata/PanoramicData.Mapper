@@ -53,4 +53,70 @@ public class ValueResolverTests
                 .ForMember(d => d.FullName, opt => opt.MapFrom(new FullNameResolver()));
         }
     }
+
+    [Fact]
+    public void ValueResolver_ReceivesResolutionContext()
+    {
+        ResolutionContext? captured = null;
+        var resolver = new ContextCapturingResolver(ctx => captured = ctx);
+
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new ContextCapturingProfile(resolver)));
+        var mapper = config.CreateMapper();
+
+        mapper.Map<ValueResolverDest>(new ValueResolverSource { FirstName = "A", LastName = "B" });
+
+        captured.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ValueResolver_ReceivesDestinationInstance()
+    {
+        ValueResolverDest? capturedDest = null;
+        var resolver = new DestCapturingResolver(d => capturedDest = d);
+
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new DestCapturingProfile(resolver)));
+        var mapper = config.CreateMapper();
+
+        mapper.Map<ValueResolverDest>(new ValueResolverSource { FirstName = "X", LastName = "Y" });
+
+        capturedDest.Should().NotBeNull();
+    }
+
+    private class ContextCapturingResolver(Action<ResolutionContext> capture) : IValueResolver<ValueResolverSource, ValueResolverDest, string>
+    {
+        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
+        {
+            capture(context);
+            return $"{source.FirstName} {source.LastName}";
+        }
+    }
+
+    private class ContextCapturingProfile : Profile
+    {
+        public ContextCapturingProfile(ContextCapturingResolver resolver)
+        {
+            CreateMap<ValueResolverSource, ValueResolverDest>()
+                .ForMember(d => d.FullName, opt => opt.MapFrom(resolver));
+        }
+    }
+
+    private class DestCapturingResolver(Action<ValueResolverDest> capture) : IValueResolver<ValueResolverSource, ValueResolverDest, string>
+    {
+        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
+        {
+            capture(destination);
+            return $"{source.FirstName} {source.LastName}";
+        }
+    }
+
+    private class DestCapturingProfile : Profile
+    {
+        public DestCapturingProfile(DestCapturingResolver resolver)
+        {
+            CreateMap<ValueResolverSource, ValueResolverDest>()
+                .ForMember(d => d.FullName, opt => opt.MapFrom(resolver));
+        }
+    }
 }

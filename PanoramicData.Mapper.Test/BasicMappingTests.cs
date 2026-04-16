@@ -6,6 +6,14 @@ namespace PanoramicData.Mapper.Test;
 public class BasicMappingTests
 {
 	[Fact]
+	public void MapperConfiguration_NullAction_Throws()
+	{
+		var act = () => new MapperConfiguration(null!);
+
+		act.Should().Throw<Exception>();
+	}
+
+	[Fact]
 	public void Map_SimpleConvention_MapsAllProperties()
 	{
 		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
@@ -55,12 +63,133 @@ public class BasicMappingTests
 	}
 
 	[Fact]
+	public void MapGeneric_MissingTypeMap_ThrowsAutoMapperMappingException()
+	{
+		var config = new MapperConfiguration(cfg => { });
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map<SimpleSource, SimpleDestination>(new SimpleSource());
+
+		act.Should().Throw<AutoMapperMappingException>();
+	}
+
+	[Fact]
+	public void MapRuntimeTypes_MissingTypeMap_ThrowsAutoMapperMappingException()
+	{
+		var config = new MapperConfiguration(cfg => { });
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map(new SimpleSource(), typeof(SimpleSource), typeof(SimpleDestination));
+
+		act.Should().Throw<AutoMapperMappingException>();
+	}
+
+	[Fact]
+	public void MapRuntimeTypesToExisting_MissingTypeMap_ThrowsAutoMapperMappingException()
+	{
+		var config = new MapperConfiguration(cfg => { });
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map(new SimpleSource(), new SimpleDestination(), typeof(SimpleSource), typeof(SimpleDestination));
+
+		act.Should().Throw<AutoMapperMappingException>();
+	}
+
+	[Fact]
+	public void MapWithOptions_MissingTypeMap_ThrowsAutoMapperMappingException()
+	{
+		var config = new MapperConfiguration(cfg => { });
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map<SimpleSource, SimpleDestination>(new SimpleSource(), opts => { });
+
+		act.Should().Throw<AutoMapperMappingException>();
+	}
+
+	[Fact]
 	public void Map_NullSource_ThrowsArgumentNullException()
 	{
 		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
 		var mapper = config.CreateMapper();
 
 		var act = () => mapper.Map<SimpleDestination>((object)null!);
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void MapGeneric_NullSource_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map<SimpleSource, SimpleDestination>(null!);
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void MapToExisting_NullSource_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map<SimpleSource, SimpleDestination>(null!, new SimpleDestination());
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void MapToExisting_NullDestination_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map(new SimpleSource(), (SimpleDestination)null!);
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void MapRuntimeTypes_NullSource_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map(null!, typeof(SimpleSource), typeof(SimpleDestination));
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void MapRuntimeTypesToExisting_NullSource_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map(null!, new SimpleDestination(), typeof(SimpleSource), typeof(SimpleDestination));
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void MapRuntimeTypesToExisting_NullDestination_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map(new SimpleSource(), null!, typeof(SimpleSource), typeof(SimpleDestination));
+
+		act.Should().Throw<ArgumentNullException>();
+	}
+
+	[Fact]
+	public void MapWithOptions_NullSource_ThrowsArgumentNullException()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		var mapper = config.CreateMapper();
+
+		var act = () => mapper.Map<SimpleSource, SimpleDestination>(null!, opts => { });
 
 		act.Should().Throw<ArgumentNullException>();
 	}

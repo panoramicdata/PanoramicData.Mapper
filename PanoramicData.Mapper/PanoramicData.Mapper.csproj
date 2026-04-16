@@ -25,7 +25,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>Mapper;AutoMapper;ObjectMapping;PanoramicData;Convention;Mapping;Projection;EFCore;DependencyInjection</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>10.0.20: Fixed ProjectTo nullable-to-non-nullable coalescing (double? -&gt; double now generates COALESCE in SQL). 10.0.19: Added implicit self-mapping (T -&gt; T) and implicit type conversions (numeric, enum, string, nullable) for convention-mapped properties. Fixed ProjectTo coercion error for Nullable to string projections; fixed ConvertValue throwing on incompatible string-to-numeric/enum convention matches. See https://github.com/panoramicdata/PanoramicData.Mapper/blob/main/CHANGELOG.md for details.</PackageReleaseNotes>
+    <PackageReleaseNotes>10.0.26: Added additional unit tests. See https://github.com/panoramicdata/PanoramicData.Mapper/blob/main/CHANGELOG.md for details.</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

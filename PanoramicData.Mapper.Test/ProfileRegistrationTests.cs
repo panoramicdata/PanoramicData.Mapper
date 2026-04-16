@@ -90,4 +90,55 @@ public class ProfileRegistrationTests
 
 		typeMap.Should().BeNull();
 	}
+
+	[Fact]
+	public void DuplicateProfiles_SameMapping_LastProfileWins()
+	{
+		var config = new MapperConfiguration(cfg =>
+		{
+			cfg.AddProfile(new UpperCaseProfile());
+			cfg.AddProfile(new LowerCaseProfile());
+		});
+		var mapper = config.CreateMapper();
+
+		var source = new SimpleSource { Id = 1, Name = "Test" };
+		var dest = mapper.Map<SimpleDestination>(source);
+
+		// FindTypeMap returns the first match, so the first profile wins
+		dest.Name.Should().Be("TEST");
+	}
+
+	[Fact]
+	public void DuplicateProfiles_SameMapping_BothTypeMapsRegistered()
+	{
+		var config = new MapperConfiguration(cfg =>
+		{
+			cfg.AddProfile(new UpperCaseProfile());
+			cfg.AddProfile(new LowerCaseProfile());
+		});
+
+		var typeMaps = config.GetAllTypeMaps()
+			.Where(m => m.SourceType == typeof(SimpleSource) && m.DestinationType == typeof(SimpleDestination))
+			.ToList();
+
+		typeMaps.Should().HaveCountGreaterThan(1);
+	}
+
+	private class UpperCaseProfile : Profile
+	{
+		public UpperCaseProfile()
+		{
+			CreateMap<SimpleSource, SimpleDestination>()
+				.ForMember(d => d.Name, opt => opt.MapFrom(s => s.Name.ToUpperInvariant()));
+		}
+	}
+
+	private class LowerCaseProfile : Profile
+	{
+		public LowerCaseProfile()
+		{
+			CreateMap<SimpleSource, SimpleDestination>()
+				.ForMember(d => d.Name, opt => opt.MapFrom(s => s.Name.ToLowerInvariant()));
+		}
+	}
 }

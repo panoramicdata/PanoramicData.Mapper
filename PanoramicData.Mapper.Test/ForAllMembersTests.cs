@@ -29,4 +29,55 @@ public class ForAllMembersTests
 		dest.Description.Should().Be("Desc"); // Set by AfterMap
 		dest.Amount.Should().Be(0m);
 	}
+
+	[Fact]
+	public void ForAllMembers_Ignore_WithoutAfterMap_AllPropertiesRemainDefault()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new IgnoreAllNoAfterMapProfile()));
+		var mapper = config.CreateMapper();
+
+		var source = new SimpleSource
+		{
+			Id = 99,
+			Name = "Test",
+			Description = "Desc",
+			CreatedDate = new DateTime(2025, 6, 1),
+			Amount = 50m
+		};
+
+		var dest = mapper.Map<SimpleDestination>(source);
+
+		dest.Id.Should().Be(0);
+		dest.Name.Should().Be(string.Empty);
+		dest.Description.Should().Be(string.Empty);
+		dest.CreatedDate.Should().Be(default);
+		dest.Amount.Should().Be(0m);
+	}
+
+	[Fact]
+	public void ForAllMembers_Ignore_MapToExisting_PreservesExistingValues()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new IgnoreAllNoAfterMapProfile()));
+		var mapper = config.CreateMapper();
+
+		var source = new SimpleSource { Id = 99, Name = "New", Amount = 50m };
+		var dest = new SimpleDestination { Id = 1, Name = "Original", Amount = 10m };
+
+		mapper.Map(source, dest);
+
+		dest.Id.Should().Be(1);
+		dest.Name.Should().Be("Original");
+		dest.Amount.Should().Be(10m);
+	}
+
+	private class IgnoreAllNoAfterMapProfile : Profile
+	{
+		public IgnoreAllNoAfterMapProfile()
+		{
+			CreateMap<SimpleSource, SimpleDestination>()
+				.ForAllMembers(opt => opt.Ignore());
+		}
+	}
 }

@@ -32,6 +32,20 @@ public class ConstructionTests
         dest.Age.Should().Be(30);
     }
 
+    [Fact]
+    public void ConstructUsing_WithForMember_BothApply()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new ConstructUsingWithForMemberProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new ConstructSource { First = "Jane", Last = "Smith", Value = 10 };
+        var dest = mapper.Map<ConstructDest>(source);
+
+        dest.Combined.Should().Be("Jane Smith");
+        dest.Value.Should().Be(20);
+    }
+
     private class ConstructUsingProfile : Profile
     {
         public ConstructUsingProfile()
@@ -48,6 +62,15 @@ public class ConstructionTests
             CreateMap<CtorParamSource, CtorParamDest>()
                 .ForCtorParam("name", opt => opt.MapFrom(s => s.FirstName))
                 .ForCtorParam("age", opt => opt.MapFrom(s => s.Age));
+        }
+    }
+    private class ConstructUsingWithForMemberProfile : Profile
+    {
+        public ConstructUsingWithForMemberProfile()
+        {
+            CreateMap<ConstructSource, ConstructDest>()
+                .ConstructUsing(src => new ConstructDest($"{src.First} {src.Last}"))
+                .ForMember(d => d.Value, opt => opt.MapFrom(s => s.Value * 2));
         }
     }
 }

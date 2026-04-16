@@ -54,4 +54,55 @@ public class ForPathTests
                 .ForPath(d => d.Address.City, opt => opt.MapFrom(s => s.City));
         }
     }
+
+    [Fact]
+    public void ForPath_ThreeLevelsDeep_MapsCorrectly()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new DeepPathProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new DeepPathSource { ZipCode = "90210", Country = "US" };
+        var dest = mapper.Map<DeepPathDest>(source);
+
+        dest.Location.Region.ZipCode.Should().Be("90210");
+        dest.Location.Region.Country.Should().Be("US");
+    }
+
+    [Fact]
+    public void ForPath_ThreeLevelsDeep_NullIntermediates_CreatesAll()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new DeepPathProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new DeepPathSource { ZipCode = "12345", Country = "DE" };
+        var dest = new DeepPathDest { Location = null! };
+
+        var result = mapper.Map(source, dest);
+
+        result.Location.Should().NotBeNull();
+        result.Location.Region.Should().NotBeNull();
+        result.Location.Region.ZipCode.Should().Be("12345");
+        result.Location.Region.Country.Should().Be("DE");
+    }
+
+    [Fact]
+    public void ForPath_ThreeLevelsDeep_ConfigurationIsValid()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new DeepPathProfile()));
+
+        config.AssertConfigurationIsValid();
+    }
+
+    private class DeepPathProfile : Profile
+    {
+        public DeepPathProfile()
+        {
+            CreateMap<DeepPathSource, DeepPathDest>()
+                .ForPath(d => d.Location.Region.ZipCode, opt => opt.MapFrom(s => s.ZipCode))
+                .ForPath(d => d.Location.Region.Country, opt => opt.MapFrom(s => s.Country));
+        }
+    }
 }

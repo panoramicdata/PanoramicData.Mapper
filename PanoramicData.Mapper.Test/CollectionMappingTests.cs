@@ -122,6 +122,76 @@ public class CollectionMappingTests
         act.Should().Throw<AutoMapperMappingException>();
     }
 
+    [Fact]
+    public void MapGeneric_NoElementTypeMap_ThrowsAutoMapperMappingException()
+    {
+        var config = new MapperConfiguration(cfg => { });
+        var mapper = config.CreateMapper();
+
+        var source = new List<SimpleSource> { new() { Id = 1 } };
+        var act = () => mapper.Map<List<SimpleSource>, List<SimpleDestination>>(source);
+
+        act.Should().Throw<AutoMapperMappingException>();
+    }
+
+    [Fact]
+    public void Map_IEnumerableDestination_MapsAllElements()
+    {
+        var config = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile(new ElementProfile());
+        });
+        var mapper = config.CreateMapper();
+
+        var source = new List<SimpleSource>
+        {
+            new() { Id = 1, Name = "A" },
+            new() { Id = 2, Name = "B" }
+        };
+
+        var dest = mapper.Map<IEnumerable<SimpleDestination>>(source);
+
+        dest.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Map_ArrayToList_MapsAllElements()
+    {
+        var config = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile(new ElementProfile());
+        });
+        var mapper = config.CreateMapper();
+
+        var source = new[] { new SimpleSource { Id = 1, Name = "FromArray" } };
+
+        var dest = mapper.Map<List<SimpleDestination>>(source);
+
+        dest.Should().ContainSingle();
+        dest[0].Name.Should().Be("FromArray");
+    }
+
+    [Fact]
+    public void MapWithOptions_Collection_MapsAllElements()
+    {
+        var config = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile(new ElementProfile());
+        });
+        var mapper = config.CreateMapper();
+
+        var source = new List<SimpleSource>
+        {
+            new() { Id = 1, Name = "Opt1" },
+            new() { Id = 2, Name = "Opt2" }
+        };
+
+        var dest = mapper.Map<List<SimpleSource>, List<SimpleDestination>>(source, opts => { });
+
+        dest.Should().HaveCount(2);
+        dest[0].Name.Should().Be("Opt1");
+    }
+
     private class ElementProfile : Profile
     {
         public ElementProfile()

@@ -59,4 +59,45 @@ public class AfterMapTests
 				.AfterMap<TestMappingAction>();
 		}
 	}
+
+	[Fact]
+	public void AfterMap_Lambda_MapToExisting_ExecutesAfterMapping()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new AfterMapLambdaForExistingProfile()));
+		var mapper = config.CreateMapper();
+
+		var source = new SimpleSource { Id = 1, Name = "Hello" };
+		var dest = new SimpleDestination { Name = "original" };
+
+		mapper.Map(source, dest);
+
+		dest.Id.Should().Be(1);
+		dest.Name.Should().Be("Hello-post");
+	}
+
+	[Fact]
+	public void AfterMap_GenericAction_MapToExisting_ExecutesAfterMapping()
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new AfterMapGenericProfile()));
+		var mapper = config.CreateMapper();
+
+		var source = new SimpleSource { Id = 2, Name = "World" };
+		var dest = new SimpleDestination();
+
+		mapper.Map(source, dest);
+
+		dest.Id.Should().Be(2);
+		dest.Name.Should().Be("PROCESSED");
+	}
+
+	private class AfterMapLambdaForExistingProfile : Profile
+	{
+		public AfterMapLambdaForExistingProfile()
+		{
+			CreateMap<SimpleSource, SimpleDestination>()
+				.AfterMap((src, dest) => dest.Name += "-post");
+		}
+	}
 }

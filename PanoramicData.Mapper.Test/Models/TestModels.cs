@@ -313,6 +313,29 @@ public class ForPathInner
 	public string City { get; set; } = string.Empty;
 }
 
+// ForPath - deep nesting (3 levels)
+public class DeepPathSource
+{
+	public string ZipCode { get; set; } = string.Empty;
+	public string Country { get; set; } = string.Empty;
+}
+
+public class DeepPathDest
+{
+	public DeepPathLevel1 Location { get; set; } = new();
+}
+
+public class DeepPathLevel1
+{
+	public DeepPathLevel2 Region { get; set; } = new();
+}
+
+public class DeepPathLevel2
+{
+	public string ZipCode { get; set; } = string.Empty;
+	public string Country { get; set; } = string.Empty;
+}
+
 // Inheritance / Include
 public class AnimalSource
 {

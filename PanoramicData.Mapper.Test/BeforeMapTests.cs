@@ -59,4 +59,21 @@ public class BeforeMapTests
                 .BeforeMap<BeforeMapAction>();
         }
     }
+
+    [Fact]
+    public void BeforeMap_Lambda_MapToExisting_ExecutesBeforeMapping()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new BeforeMapLambdaProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new BeforeMapSource { Id = 1, Name = "Test" };
+        var dest = new BeforeMapDest { Tag = "original" };
+
+        mapper.Map(source, dest);
+
+        dest.Id.Should().Be(1);
+        dest.Name.Should().Be("Test");
+        dest.Tag.Should().Be("pre-processed");
+    }
 }

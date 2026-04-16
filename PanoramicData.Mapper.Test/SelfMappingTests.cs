@@ -164,6 +164,60 @@ public class SelfMappingTests
 		dest.Amount.Should().Be(99m);
 	}
 
+	// --- Runtime-typed overloads ---
+
+	[Fact]
+	public void MapRuntimeTypes_SelfMap_CreatesNewInstance()
+	{
+		var mapper = CreateMapper();
+		var source = new SelfMapEntity { Id = 30, Name = "Runtime", Amount = 7.77m };
+
+		var dest = (SelfMapEntity)mapper.Map(source, typeof(SelfMapEntity), typeof(SelfMapEntity));
+
+		dest.Should().NotBeSameAs(source);
+		dest.Id.Should().Be(30);
+		dest.Name.Should().Be("Runtime");
+		dest.Amount.Should().Be(7.77m);
+	}
+
+	[Fact]
+	public void MapRuntimeTypesToExisting_SelfMap_CopiesProperties()
+	{
+		var mapper = CreateMapper();
+		var source = new SelfMapEntity { Id = 40, Name = "RuntimeExisting", Amount = 3.14m };
+		var dest = new SelfMapEntity { Id = 0, Name = "", Amount = 0m };
+
+		var result = (SelfMapEntity)mapper.Map(source, dest, typeof(SelfMapEntity), typeof(SelfMapEntity));
+
+		result.Should().BeSameAs(dest);
+		dest.Id.Should().Be(40);
+		dest.Name.Should().Be("RuntimeExisting");
+		dest.Amount.Should().Be(3.14m);
+	}
+
+	// --- Options overload ---
+
+	[Fact]
+	public void MapWithOptions_SelfMap_ExecutesBeforeAndAfterActions()
+	{
+		var mapper = CreateMapper();
+		var source = new SelfMapEntity { Id = 50, Name = "Opts", Amount = 1m };
+		var beforeCalled = false;
+		var afterCalled = false;
+
+		var dest = mapper.Map<SelfMapEntity, SelfMapEntity>(source, opts =>
+		{
+			opts.BeforeMap((s, d) => beforeCalled = true);
+			opts.AfterMap((s, d) => afterCalled = true);
+		});
+
+		dest.Should().NotBeSameAs(source);
+		dest.Id.Should().Be(50);
+		dest.Name.Should().Be("Opts");
+		beforeCalled.Should().BeTrue();
+		afterCalled.Should().BeTrue();
+	}
+
 	private class ExplicitSelfMapProfile : Profile
 	{
 		public ExplicitSelfMapProfile() => CreateMap<SelfMapEntity, SelfMapEntity>();
