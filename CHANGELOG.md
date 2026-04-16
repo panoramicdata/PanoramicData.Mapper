@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [10.0.26] - 2026-04-16
+
+### Added
+
+- 44 additional unit tests covering gaps in null argument validation, runtime-typed mapping exceptions, self-mapping edge cases, collection mapping edge cases, `ConvertUsing` instance converter behavior, `ReverseMap` with member configurations, `ForPath` with 3-level deep nesting, `IncludeBase` + `Include` interaction, `AddTransform` for non-string types, `ConstructUsing` + `ForMember` combination, `BeforeMap`/`AfterMap` with map-to-existing, `ForAllMembers` ignore behavior, `MapperConfiguration` null action guard, duplicate profile registration, `ValueResolver` resolution context, and `ProjectTo` null argument guards
+
+## [10.0.25] - 2026-04-16
+
+### Fixed
+
+- Cleaned up compiler errors, warnings, and code analysis messages across the solution
+
+## [10.0.22] - 2026-04-07
+
+### Changed
+
+- NuGet governance remediation - added `Directory.Build.props`, `Directory.Packages.props`, `CONTRIBUTING.md`, `SECURITY.md`, Dependabot configuration, and updated CI workflow
+
 ## [10.0.20] - 2026-04-05
 
 ### Fixed
