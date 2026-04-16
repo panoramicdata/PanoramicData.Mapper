@@ -84,7 +84,7 @@ public class CollectionMappingTests
 
         var dest = mapper.Map<List<SimpleSource>, List<SimpleDestination>>(source);
 
-        dest.Should().HaveCount(1);
+        dest.Should().ContainSingle();
         dest[0].Id.Should().Be(5);
         dest[0].Name.Should().Be("Five");
     }
@@ -103,10 +103,10 @@ public class CollectionMappingTests
             new() { Id = 7, Name = "Seven" }
         };
 
-        var result = mapper.Map(source, typeof(List<SimpleSource>), typeof(List<SimpleDestination>));
+        var result = mapper.Map<List<SimpleSource>, List<SimpleDestination>>(source);
 
         var dest = result.Should().BeOfType<List<SimpleDestination>>().Subject;
-        dest.Should().HaveCount(1);
+        dest.Should().ContainSingle();
         dest[0].Id.Should().Be(7);
     }
 

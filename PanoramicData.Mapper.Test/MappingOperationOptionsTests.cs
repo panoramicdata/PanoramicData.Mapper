@@ -13,7 +13,7 @@ public class MappingOperationOptionsTests
     {
         public SimpleMapWithProfileAfterMapProfile()
             => CreateMap<SimpleSource, SimpleDestination>()
-                .AfterMap((src, d) => d.Name = d.Name + " - Profile");
+                .AfterMap((src, d) => d.Name += " - Profile");
     }
 
     [Fact]
@@ -85,8 +85,8 @@ public class MappingOperationOptionsTests
             source,
             opts =>
             {
-                opts.AfterMap((src, d) => d.Name = d.Name + " - First");
-                opts.AfterMap((src, d) => d.Name = d.Name + " - Second");
+                opts.AfterMap((src, d) => d.Name += " - First");
+                opts.AfterMap((src, d) => d.Name += " - Second");
             });
 
         dest.Name.Should().Be("Test - First - Second");
@@ -106,7 +106,7 @@ public class MappingOperationOptionsTests
             opts =>
             {
                 opts.Items["suffix"] = " - Custom";
-                opts.AfterMap((src, d) => d.Name = d.Name + (string)opts.Items["suffix"]);
+                opts.AfterMap((src, d) => d.Name += (string)opts.Items["suffix"]);
             });
 
         dest.Name.Should().Be("Test - Custom");
@@ -139,7 +139,7 @@ public class MappingOperationOptionsTests
 
         var dest = mapper.Map<SimpleSource, SimpleDestination>(
             source,
-            opts => opts.AfterMap((src, d) => d.Name = d.Name + " - Inline"));
+            opts => opts.AfterMap((src, d) => d.Name += " - Inline"));
 
         // Profile AfterMap runs during Map, then inline AfterMap runs after
         dest.Name.Should().Be("Test - Profile - Inline");

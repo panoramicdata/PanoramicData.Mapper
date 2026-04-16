@@ -276,15 +276,10 @@ public class ConstructSource
 	public int Value { get; set; }
 }
 
-public class ConstructDest
+public class ConstructDest(string combined)
 {
-	public string Combined { get; set; }
+	public string Combined { get; set; } = combined;
 	public int Value { get; set; }
-
-	public ConstructDest(string combined)
-	{
-		Combined = combined;
-	}
 }
 
 // ForCtorParam
@@ -294,16 +289,10 @@ public class CtorParamSource
 	public int Age { get; set; }
 }
 
-public class CtorParamDest
+public class CtorParamDest(string name, int age)
 {
-	public string Name { get; }
-	public int Age { get; }
-
-	public CtorParamDest(string name, int age)
-	{
-		Name = name;
-		Age = age;
-	}
+	public string Name { get; } = name;
+	public int Age { get; } = age;
 }
 
 // ForPath

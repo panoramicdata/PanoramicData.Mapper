@@ -125,8 +125,10 @@ public sealed class MapperConfiguration : IConfigurationProvider
 			return null;
 		}
 
-		var closed = new TypeMap(sourceType, destinationType);
-		closed.TypeMapResolver = FindTypeMap;
+		var closed = new TypeMap(sourceType, destinationType)
+		{
+			TypeMapResolver = FindTypeMap
+		};
 		_typeMaps.Add(closed);
 		return closed;
 	}

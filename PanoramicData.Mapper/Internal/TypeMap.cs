@@ -8,17 +8,22 @@ namespace PanoramicData.Mapper.Internal;
 /// <summary>
 /// Represents a compiled mapping plan between a source and destination type.
 /// </summary>
-public sealed class TypeMap
+/// <remarks>
+/// Initializes a new instance of the <see cref="TypeMap"/> class.
+/// </remarks>
+/// <param name="sourceType">The source type for the mapping.</param>
+/// <param name="destinationType">The destination type for the mapping.</param>
+public sealed class TypeMap(Type sourceType, Type destinationType)
 {
 	/// <summary>
 	/// The source type.
 	/// </summary>
-	public Type SourceType { get; }
+	public Type SourceType { get; } = sourceType;
 
 	/// <summary>
 	/// The destination type.
 	/// </summary>
-	public Type DestinationType { get; }
+	public Type DestinationType { get; } = destinationType;
 
 	internal Dictionary<string, PropertyMapping> PropertyMappings { get; } = new(StringComparer.Ordinal);
 
@@ -98,17 +103,6 @@ public sealed class TypeMap
 	private static int t_currentDepth;
 
 	private Func<object, object, object>? _compiledMapper;
-
-	/// <summary>
-	/// Initializes a new instance of the <see cref="TypeMap"/> class.
-	/// </summary>
-	/// <param name="sourceType">The source type for the mapping.</param>
-	/// <param name="destinationType">The destination type for the mapping.</param>
-	public TypeMap(Type sourceType, Type destinationType)
-	{
-		SourceType = sourceType;
-		DestinationType = destinationType;
-	}
 
 	/// <summary>
 	/// Execute the mapping from source to a new destination object.
@@ -223,10 +217,7 @@ public sealed class TypeMap
 	/// </summary>
 	public object MapToExisting(object source, object destination)
 	{
-		if (_compiledMapper is null)
-		{
-			_compiledMapper = CompileMapper();
-		}
+		_compiledMapper ??= CompileMapper();
 
 		ExecuteBeforeMapActions(source, destination);
 		_compiledMapper(source, destination);

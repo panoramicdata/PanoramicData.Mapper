@@ -55,7 +55,7 @@ public class TypeConverterTests
 
     private class RepeatConverter : ITypeConverter<ConverterSource, ConverterDest>
     {
-        public ConverterDest Convert(ConverterSource source, ConverterDest _destination, ResolutionContext _context)
+        public ConverterDest Convert(ConverterSource source, ConverterDest _destination, ResolutionContext context)
             => new() { Result = string.Concat(Enumerable.Repeat(source.Value, source.Multiplier)) };
     }
 

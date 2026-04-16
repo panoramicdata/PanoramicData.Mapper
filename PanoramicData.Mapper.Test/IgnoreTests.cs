@@ -17,7 +17,7 @@ public class IgnoreTests
 		dest.Id.Should().Be(1);
 		dest.Name.Should().Be("Test");
 		dest.Secret.Should().Be("original"); // Not overwritten
-		dest.Timestamp.Should().Be(default(DateTime)); // Not mapped
+		dest.Timestamp.Should().Be(default); // Not mapped
 	}
 
 	[Fact]

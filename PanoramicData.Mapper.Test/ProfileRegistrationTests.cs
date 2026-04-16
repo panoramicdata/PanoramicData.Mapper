@@ -76,8 +76,8 @@ public class ProfileRegistrationTests
 
 		var typeMap = provider.FindTypeMap(typeof(SimpleSource), typeof(SimpleDestination));
 		typeMap.Should().NotBeNull();
-		typeMap!.SourceType.Should().Be(typeof(SimpleSource));
-		typeMap.DestinationType.Should().Be(typeof(SimpleDestination));
+		typeMap!.SourceType.Should().Be<SimpleSource>();
+		typeMap.DestinationType.Should().Be<SimpleDestination>();
 	}
 
 	[Fact]

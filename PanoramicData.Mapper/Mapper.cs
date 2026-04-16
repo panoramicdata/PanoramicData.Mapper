@@ -7,17 +7,12 @@ namespace PanoramicData.Mapper;
 /// <summary>
 /// Default implementation of IMapper that uses a MapperConfiguration.
 /// </summary>
-public sealed class Mapper : IMapper
+/// <remarks>
+/// Creates a new Mapper with the given configuration.
+/// </remarks>
+public sealed class Mapper(MapperConfiguration configuration) : IMapper
 {
-	private readonly MapperConfiguration _configuration;
-
-	/// <summary>
-	/// Creates a new Mapper with the given configuration.
-	/// </summary>
-	public Mapper(MapperConfiguration configuration)
-	{
-		_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-	}
+	private readonly MapperConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
 	/// <inheritdoc />
 	public IConfigurationProvider ConfigurationProvider => _configuration;
@@ -73,7 +68,7 @@ public sealed class Mapper : IMapper
 		// Self-mapping fallback: T -> T copies properties without requiring explicit CreateMap
 		if (typeof(TSource) == typeof(TDestination))
 		{
-			return (TDestination)(object)SelfMap(source, typeof(TSource));
+			return (TDestination)SelfMap(source, typeof(TSource));
 		}
 
 		throw new AutoMapperMappingException(

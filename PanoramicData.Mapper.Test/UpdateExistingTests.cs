@@ -71,7 +71,7 @@ public class UpdateExistingTests
 		var mapper = config.CreateMapper();
 
 		var source = new SimpleSource { Id = 42, Name = "Runtime" };
-		var result = mapper.Map(source, typeof(SimpleSource), typeof(SimpleDestination));
+		var result = mapper.Map<SimpleSource, SimpleDestination>(source);
 
 		var dest = result.Should().BeOfType<SimpleDestination>().Subject;
 		dest.Id.Should().Be(42);
@@ -87,7 +87,7 @@ public class UpdateExistingTests
 
 		var source = new SimpleSource { Id = 7, Name = "RT" };
 		var existing = new SimpleDestination { Id = 0, Name = "Old" };
-		var result = mapper.Map(source, existing, typeof(SimpleSource), typeof(SimpleDestination));
+		var result = mapper.Map(source, existing);
 
 		result.Should().BeSameAs(existing);
 		existing.Id.Should().Be(7);

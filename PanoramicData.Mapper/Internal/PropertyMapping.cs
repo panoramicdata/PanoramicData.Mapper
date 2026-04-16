@@ -5,12 +5,16 @@ namespace PanoramicData.Mapper.Internal;
 /// <summary>
 /// Represents a custom property mapping from source to destination.
 /// </summary>
-public sealed class PropertyMapping
+/// <remarks>
+/// Initializes a new instance of the <see cref="PropertyMapping"/> class.
+/// </remarks>
+/// <param name="destinationMemberName">The destination member name that this mapping targets.</param>
+public sealed class PropertyMapping(string destinationMemberName)
 {
 	/// <summary>
 	/// The name of the destination property.
 	/// </summary>
-	public string DestinationMemberName { get; }
+	public string DestinationMemberName { get; } = destinationMemberName;
 
 	/// <summary>
 	/// The source expression lambda (untyped).
@@ -58,13 +62,4 @@ public sealed class PropertyMapping
 	/// For ForPath: the chain of property names to navigate to set a nested value.
 	/// </summary>
 	public string[]? PathSegments { get; set; }
-
-	/// <summary>
-	/// Initializes a new instance of the <see cref="PropertyMapping"/> class.
-	/// </summary>
-	/// <param name="destinationMemberName">The destination member name that this mapping targets.</param>
-	public PropertyMapping(string destinationMemberName)
-	{
-		DestinationMemberName = destinationMemberName;
-	}
 }

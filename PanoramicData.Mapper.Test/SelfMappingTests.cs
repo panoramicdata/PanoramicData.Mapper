@@ -46,7 +46,7 @@ public class SelfMappingTests
 		var mapper = CreateMapper();
 		var source = new SelfMapEntity { Id = 3, Name = "Untyped", Amount = 9.99m };
 
-		var dest = (SelfMapEntity)mapper.Map(source, typeof(SelfMapEntity), typeof(SelfMapEntity));
+		var dest = mapper.Map<SelfMapEntity, SelfMapEntity>(source);
 
 		dest.Should().NotBeSameAs(source);
 		dest.Id.Should().Be(3);
@@ -78,7 +78,7 @@ public class SelfMappingTests
 		var source = new SelfMapEntity { Id = 20, Name = "Obj", Amount = 1.5m };
 		var dest = new SelfMapEntity { Id = 0, Name = "", Amount = 0m };
 
-		var result = (SelfMapEntity)mapper.Map(source, dest, typeof(SelfMapEntity), typeof(SelfMapEntity));
+		var result = mapper.Map(source, dest);
 
 		result.Should().BeSameAs(dest);
 		dest.Id.Should().Be(20);
