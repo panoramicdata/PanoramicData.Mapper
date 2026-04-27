@@ -425,6 +425,7 @@ public sealed class TypeMap(Type sourceType, Type destinationType)
 	{
 		var destSetter = CreateSetter(destProp);
 		var destGetter = CreateGetter(destProp);
+		var destPropType = destProp.PropertyType;
 
 		return (src, dest) =>
 		{
@@ -449,7 +450,24 @@ public sealed class TypeMap(Type sourceType, Type destinationType)
 				value = mapping.NullSubstitute;
 			}
 
-			value = ApplyValueTransformers(value, destProp.PropertyType);
+			// If the destination property is an interface or abstract collection type and the
+			// resolved value's type is not directly assignable (e.g. List<TSource> -> IList<TDest>),
+			// attempt to map it as a collection via the type map resolver.
+			if (value is not null && TypeMapResolver is not null
+				&& destPropType is { IsInterface: true } or { IsAbstract: true }
+				&& !destPropType.IsAssignableFrom(value.GetType())
+				&& value is IEnumerable sourceEnumerable
+				&& TryGetCollectionElementType(value.GetType(), out var srcElemType)
+				&& TryGetCollectionElementType(destPropType, out var destElemType))
+			{
+				var elemMap = TypeMapResolver(srcElemType, destElemType);
+				if (elemMap is not null)
+				{
+					value = MapCollection(sourceEnumerable, elemMap, destPropType, destElemType);
+				}
+			}
+
+			value = ApplyValueTransformers(value, destPropType);
 			destSetter(dest, value);
 		};
 	}

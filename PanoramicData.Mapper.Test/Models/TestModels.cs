@@ -723,3 +723,28 @@ public class NonNullablePortDto
 	public int ClientCount { get; set; }
 	public bool IsOnline { get; set; }
 }
+
+// Interface collection property models
+public class OrderSourceWithItems
+{
+	public int Id { get; set; }
+	public List<LineItemSource> Items { get; set; } = [];
+}
+
+public class OrderDestWithIList
+{
+	public int Id { get; set; }
+	public IList<LineItemDest> Items { get; set; } = [];
+}
+
+public class OrderDestWithICollection
+{
+	public int Id { get; set; }
+	public ICollection<LineItemDest> Items { get; set; } = [];
+}
+
+public class OrderDestWithIEnumerable
+{
+	public int Id { get; set; }
+	public IEnumerable<LineItemDest> Items { get; set; } = [];
+}

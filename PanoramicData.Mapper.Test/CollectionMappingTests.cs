@@ -199,4 +199,109 @@ public class CollectionMappingTests
             CreateMap<SimpleSource, SimpleDestination>();
         }
     }
+
+    // --- Interface collection property tests ---
+
+    [Fact]
+    public void Map_CollectionProperty_IList_MapsCorrectly()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new OrderWithInterfaceProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new OrderSourceWithItems
+        {
+            Id = 1,
+            Items = [new() { Product = "Widget", Quantity = 3 }]
+        };
+
+        var dest = mapper.Map<OrderDestWithIList>(source);
+
+        dest.Id.Should().Be(1);
+        dest.Items.Should().ContainSingle();
+        dest.Items[0].Product.Should().Be("Widget");
+        dest.Items[0].Quantity.Should().Be(3);
+    }
+
+    [Fact]
+    public void Map_CollectionProperty_ICollection_MapsCorrectly()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new OrderWithInterfaceProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new OrderSourceWithItems
+        {
+            Id = 2,
+            Items = [new() { Product = "Gadget", Quantity = 5 }]
+        };
+
+        var dest = mapper.Map<OrderDestWithICollection>(source);
+
+        dest.Id.Should().Be(2);
+        dest.Items.Should().ContainSingle();
+        dest.Items.First().Product.Should().Be("Gadget");
+    }
+
+    [Fact]
+    public void Map_CollectionProperty_IEnumerable_MapsCorrectly()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new OrderWithInterfaceProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new OrderSourceWithItems
+        {
+            Id = 3,
+            Items = [new() { Product = "Doohickey", Quantity = 1 }]
+        };
+
+        var dest = mapper.Map<OrderDestWithIEnumerable>(source);
+
+        dest.Id.Should().Be(3);
+        dest.Items.Should().ContainSingle();
+        dest.Items.First().Product.Should().Be("Doohickey");
+    }
+
+    private class OrderWithInterfaceProfile : Profile
+    {
+        public OrderWithInterfaceProfile()
+        {
+            CreateMap<LineItemSource, LineItemDest>();
+            CreateMap<OrderSourceWithItems, OrderDestWithIList>();
+            CreateMap<OrderSourceWithItems, OrderDestWithICollection>();
+            CreateMap<OrderSourceWithItems, OrderDestWithIEnumerable>();
+        }
+    }
+
+    [Fact]
+    public void Map_CollectionProperty_IList_WithMapFrom_MapsCorrectly()
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new OrderWithIListMapFromProfile()));
+        var mapper = config.CreateMapper();
+
+        var source = new OrderSourceWithItems
+        {
+            Id = 10,
+            Items = [new() { Product = "Sprocket", Quantity = 7 }]
+        };
+
+        var dest = mapper.Map<OrderDestWithIList>(source);
+
+        dest.Id.Should().Be(10);
+        dest.Items.Should().ContainSingle();
+        dest.Items[0].Product.Should().Be("Sprocket");
+        dest.Items[0].Quantity.Should().Be(7);
+    }
+
+    private class OrderWithIListMapFromProfile : Profile
+    {
+        public OrderWithIListMapFromProfile()
+        {
+            CreateMap<LineItemSource, LineItemDest>();
+            CreateMap<OrderSourceWithItems, OrderDestWithIList>()
+                .ForMember(d => d.Items, opt => opt.MapFrom(s => s.Items));
+        }
+    }
 }

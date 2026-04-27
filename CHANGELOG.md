@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [10.0.29] - 2026-04-27
+
+### Fixed
+
+- `BuildMappingAssignment` now correctly maps interface-typed collection destination properties (`IList<T>`, `ICollection<T>`, `IEnumerable<T>`) when using `ForMember` with `MapFrom`. Previously .NET 10 threw `ArgumentException: Object of type 'List<TSource>' cannot be converted to type 'IList<TDest>'` from `RuntimePropertyInfo.SetValue`
+
+## [10.0.28] - 2026-04-16
+
+### Changed
+
+- Removed redundant test step from CI workflow
+
+## [10.0.27] - 2026-04-16
+
+### Fixed
+
+- Corrected changelog dates for versions 10.0.22-10.0.26
+
 ## [10.0.26] - 2026-04-16
 
 ### Added
