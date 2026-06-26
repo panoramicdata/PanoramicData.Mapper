@@ -31,6 +31,12 @@ public sealed class TypeMap(Type sourceType, Type destinationType)
 
 	internal HashSet<string> IgnoredSourceMembers { get; } = new(StringComparer.Ordinal);
 
+	/// <summary>
+	/// Destination members marked with ExplicitExpansion: excluded from ProjectTo projections unless
+	/// explicitly requested. Has no effect on the in-memory Map path.
+	/// </summary>
+	internal HashSet<string> ExplicitExpansionMembers { get; } = new(StringComparer.Ordinal);
+
 	internal MemberList MemberListValidation { get; set; } = MemberList.Destination;
 
 	internal bool AllMembersIgnored { get; set; }
@@ -854,6 +860,11 @@ public sealed class TypeMap(Type sourceType, Type destinationType)
 		foreach (var ignored in IgnoredMembers)
 		{
 			derived.IgnoredMembers.Add(ignored);
+		}
+
+		foreach (var member in ExplicitExpansionMembers)
+		{
+			derived.ExplicitExpansionMembers.Add(member);
 		}
 
 		foreach (var action in BeforeMapActions)

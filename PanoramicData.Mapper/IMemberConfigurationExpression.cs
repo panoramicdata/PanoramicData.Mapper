@@ -51,4 +51,11 @@ public interface IMemberConfigurationExpression<TSource, TDestination, TMember>
 	/// Use the existing destination value instead of creating a new one (useful for collections).
 	/// </summary>
 	void UseDestinationValue();
+
+	/// <summary>
+	/// Exclude this member from <c>ProjectTo</c> projections unless it is explicitly requested via the
+	/// <c>membersToExpand</c> argument of <c>ProjectTo</c>. Typically used for expensive child
+	/// collections that should only be loaded on demand. Does not affect in-memory <c>Map</c>.
+	/// </summary>
+	void ExplicitExpansion();
 }

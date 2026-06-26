@@ -16,35 +16,50 @@ It is a clean-room, black-box reimplementation — no AutoMapper source code was
 
 ## Supported Features
 
-- **Convention-based mapping** — properties with matching names and compatible types map automatically
+### Configuration & setup
+
 - **Profile-based configuration** — derive from `Profile` and call `CreateMap<TSource, TDestination>()`
+- **Convention-based mapping** — properties with matching names and compatible types map automatically
+- **ReverseMap** — `.ReverseMap()` creates the inverse mapping automatically
+- **AssertConfigurationIsValid** — detects unmapped destination properties at startup
+- **DI integration** — `AddAutoMapper()` extension methods for `IServiceCollection`
+
+### Member configuration
+
 - **ForMember / Ignore** — skip specific destination properties
 - **ForMember / MapFrom** — custom source expressions including nested property access
-- **BeforeMap / AfterMap** — inline lambda and generic `IMappingAction<TSrc, TDest>` pre/post-mapping callbacks
-- **ForAllMembers** — apply configuration to all destination members
-- **ReverseMap** — `.ReverseMap()` creates the inverse mapping automatically
-- **ConvertUsing** — lambda, `ITypeConverter<TSrc, TDst>` type, or instance for full-type conversion
-- **ConstructUsing** — custom destination construction via lambda
-- **ForPath** — `.ForPath(d => d.Inner.Prop, opt => ...)` for deep nested member configuration
-- **ForCtorParam** — `.ForCtorParam("name", opt => ...)` for constructor parameter mapping
 - **Condition / PreCondition** — conditional member mapping (evaluated after/before value resolution)
 - **NullSubstitute** — substitute a default value when the source resolves to null
-- **Value Resolvers** — `IValueResolver<TSrc, TDst, TMember>` for custom resolution logic
-- **Mapping Inheritance** — `Include`, `IncludeBase`, `IncludeAllDerived` for polymorphic hierarchies
-- **Value Transformers** — `.AddTransform<T>(expr)` for per-type value transforms
-- **Open Generics** — `CreateMap(typeof(Source<>), typeof(Dest<>))` for generic type mappings
 - **UseDestinationValue** — preserve existing destination property values
-- **MaxDepth** — `.MaxDepth(n)` to limit recursive mapping depth
-- **Map to new** — `mapper.Map<TDest>(source)` creates a new destination
-- **Map to existing** — `mapper.Map(source, destination)` updates an existing object
-- **ProjectTo** — `IQueryable<T>.ProjectTo<TDest>(configurationProvider)` for EF Core SQL projection
+- **ForPath** — `.ForPath(d => d.Inner.Prop, opt => ...)` for deep nested member configuration
+- **ForCtorParam** — `.ForCtorParam("name", opt => ...)` for constructor parameter mapping
+- **ForAllMembers** — apply configuration to all destination members
 - **[Ignore] attribute** — `PanoramicData.Mapper.Configuration.Annotations.IgnoreAttribute`
+- **IgnoreAllPropertiesWithAnInaccessibleSetter** — extension method to ignore all destination properties with non-public or absent setters
+
+### Custom resolution & hooks
+
+- **ConvertUsing** — lambda, `ITypeConverter<TSrc, TDst>` type, or instance for full-type conversion
+- **ConstructUsing** — custom destination construction via lambda
+- **Value Resolvers** — `IValueResolver<TSrc, TDst, TMember>` for custom resolution logic
+- **Value Transformers** — `.AddTransform<T>(expr)` for per-type value transforms
+- **BeforeMap / AfterMap** — inline lambda and generic `IMappingAction<TSrc, TDest>` pre/post-mapping callbacks
+
+### Type relationships
+
 - **Nested mappings** — recursive mapping of complex child types and collection properties when a CreateMap exists for the child types
 - **Collection/List/Array mapping** — `mapper.Map<List<Dest>>(sourceList)` maps collections automatically when an element-type map is registered
 - **Flattening** — PascalCase destination property names are split and traversed on the source graph (e.g. `CustomerName` → `Customer.Name`); also matches `GetX()` methods
-- **AssertConfigurationIsValid** — detects unmapped destination properties at startup
-- **IgnoreAllPropertiesWithAnInaccessibleSetter** — extension method to ignore all destination properties with non-public or absent setters
-- **DI integration** — `AddAutoMapper()` extension methods for `IServiceCollection`
+- **Mapping Inheritance** — `Include`, `IncludeBase`, `IncludeAllDerived` for polymorphic hierarchies
+- **Open Generics** — `CreateMap(typeof(Source<>), typeof(Dest<>))` for generic type mappings
+- **MaxDepth** — `.MaxDepth(n)` to limit recursive mapping depth
+
+### Execution & projection
+
+- **Map to new** — `mapper.Map<TDest>(source)` creates a new destination
+- **Map to existing** — `mapper.Map(source, destination)` updates an existing object
+- **ProjectTo** — `IQueryable<T>.ProjectTo<TDest>(configurationProvider)` for EF Core SQL projection, including recursive projection of nested complex members and collections of complex elements
+- **ExplicitExpansion** — `.ForMember(d => d.Children, opt => opt.ExplicitExpansion())` excludes a member from `ProjectTo` projections unless requested via `ProjectTo(config, d => d.Children)`; has no effect on in-memory `Map`
 
 ## Installation
 

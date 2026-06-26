@@ -240,6 +240,11 @@ internal sealed class MappingExpression<TSource, TDestination>(TypeMap typeMap, 
 
 	private void ApplyMemberConfig<TMember>(MemberConfigurationExpression<TSource, TDestination, TMember> config)
 	{
+		if (config.IsExplicitExpansion)
+		{
+			typeMap.ExplicitExpansionMembers.Add(config.MemberName);
+		}
+
 		if (config.IsIgnored)
 		{
 			typeMap.IgnoredMembers.Add(config.MemberName);

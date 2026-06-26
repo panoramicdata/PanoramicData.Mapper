@@ -27,6 +27,8 @@ internal sealed class MemberConfigurationExpression<TSource, TDestination, TMemb
 
 	internal bool UseDestValue { get; private set; }
 
+	internal bool IsExplicitExpansion { get; private set; }
+
 	public void Ignore()
 	{
 		IsIgnored = true;
@@ -73,5 +75,10 @@ internal sealed class MemberConfigurationExpression<TSource, TDestination, TMemb
 	public void UseDestinationValue()
 	{
 		UseDestValue = true;
+	}
+
+	public void ExplicitExpansion()
+	{
+		IsExplicitExpansion = true;
 	}
 }
