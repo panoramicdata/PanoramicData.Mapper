@@ -1,4 +1,4 @@
-using PanoramicData.Mapper.Test.Models;
+﻿using PanoramicData.Mapper.Test.Models;
 
 namespace PanoramicData.Mapper.Test;
 
@@ -13,15 +13,13 @@ public class MappingOperationOptionsTests
     {
         public SimpleMapWithProfileAfterMapProfile()
             => CreateMap<SimpleSource, SimpleDestination>()
-                .AfterMap((src, d) => d.Name += " - Profile");
+                .AfterMap((_, d) => d.Name += " - Profile");
     }
 
     [Fact]
     public void Map_WithAfterMap_ExecutesAfterMapping()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile<SimpleMapProfile>());
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<SimpleMapProfile>();
 
         var source = new SimpleSource { Id = 1, Name = "Test" };
 
@@ -36,16 +34,14 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithBeforeMap_ExecutesBeforeMapping()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile<SimpleMapProfile>());
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<SimpleMapProfile>();
 
         var source = new SimpleSource { Id = 1, Name = "Test" };
         var beforeCalled = false;
 
         var dest = mapper.Map<SimpleSource, SimpleDestination>(
             source,
-            opts => opts.BeforeMap((src, d) => beforeCalled = true));
+            opts => opts.BeforeMap((_, _) => beforeCalled = true));
 
         dest.Id.Should().Be(1);
         beforeCalled.Should().BeTrue();
@@ -54,9 +50,7 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithAfterMap_CanModifyMultipleProperties()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile<SimpleMapProfile>());
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<SimpleMapProfile>();
 
         var source = new SimpleSource { Id = 5, Name = "Original" };
 
@@ -75,9 +69,7 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithMultipleAfterMaps_ExecutesAllInOrder()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile<SimpleMapProfile>());
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<SimpleMapProfile>();
 
         var source = new SimpleSource { Id = 1, Name = "Test" };
 
@@ -85,8 +77,8 @@ public class MappingOperationOptionsTests
             source,
             opts =>
             {
-                opts.AfterMap((src, d) => d.Name += " - First");
-                opts.AfterMap((src, d) => d.Name += " - Second");
+                opts.AfterMap((_, d) => d.Name += " - First");
+                opts.AfterMap((_, d) => d.Name += " - Second");
             });
 
         dest.Name.Should().Be("Test - First - Second");
@@ -95,9 +87,7 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithItems_CanPassContextualData()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile<SimpleMapProfile>());
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<SimpleMapProfile>();
 
         var source = new SimpleSource { Id = 1, Name = "Test" };
 
@@ -106,7 +96,7 @@ public class MappingOperationOptionsTests
             opts =>
             {
                 opts.Items["suffix"] = " - Custom";
-                opts.AfterMap((src, d) => d.Name += (string)opts.Items["suffix"]);
+                opts.AfterMap((_, d) => d.Name += (string)opts.Items["suffix"]);
             });
 
         dest.Name.Should().Be("Test - Custom");
@@ -115,9 +105,7 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithNullOpts_ThrowsArgumentNullException()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile<SimpleMapProfile>());
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<SimpleMapProfile>();
 
         var source = new SimpleSource { Id = 1, Name = "Test" };
 
@@ -131,15 +119,13 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithAfterMap_ProfileAfterMapAlsoExecutes()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile<SimpleMapWithProfileAfterMapProfile>());
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<SimpleMapWithProfileAfterMapProfile>();
 
         var source = new SimpleSource { Id = 1, Name = "Test" };
 
         var dest = mapper.Map<SimpleSource, SimpleDestination>(
             source,
-            opts => opts.AfterMap((src, d) => d.Name += " - Inline"));
+            opts => opts.AfterMap((_, d) => d.Name += " - Inline"));
 
         // Profile AfterMap runs during Map, then inline AfterMap runs after
         dest.Name.Should().Be("Test - Profile - Inline");

@@ -39,13 +39,13 @@ public class BeforeMapTests
         public BeforeMapLambdaProfile()
         {
             CreateMap<BeforeMapSource, BeforeMapDest>()
-                .BeforeMap((src, dest) => dest.Tag = "pre-processed");
+                .BeforeMap((_, dest) => dest.Tag = "pre-processed");
         }
     }
 
     private class BeforeMapAction : IMappingAction<BeforeMapSource, BeforeMapDest>
     {
-        public void Process(BeforeMapSource _source, BeforeMapDest destination, ResolutionContext context)
+        public void Process(BeforeMapSource _, BeforeMapDest destination, ResolutionContext context)
         {
             destination.Tag = "action-tag";
         }

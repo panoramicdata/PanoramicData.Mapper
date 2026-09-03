@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace PanoramicData.Mapper;
 
@@ -29,6 +29,18 @@ internal sealed class MemberConfigurationExpression<TSource, TDestination, TMemb
 
 	internal bool IsExplicitExpansion { get; private set; }
 
+	/// <summary>
+	/// Whether anything beyond the member's name has actually been configured. False for a member
+	/// that was named but left with default behaviour, which needs no stored mapping.
+	/// </summary>
+	internal bool HasConfiguration
+		=> SourceExpression is not null
+			|| ValueResolverType is not null
+			|| ConditionDelegate is not null
+			|| PreConditionDelegate is not null
+			|| HasNullSubstitute
+			|| UseDestValue;
+
 	public void Ignore()
 	{
 		IsIgnored = true;
@@ -50,20 +62,20 @@ internal sealed class MemberConfigurationExpression<TSource, TDestination, TMemb
 		ValueResolverType = resolver.GetType();
 	}
 
-	public void Condition(Func<TSource, TDestination, TMember, bool> condition)
+	public void Condition(Func<TSource, TDestination, TMember, bool> predicate)
 	{
-		ConditionDelegate = condition;
+		ConditionDelegate = predicate;
 	}
 
-	public void Condition(Func<TSource, bool> condition)
+	public void Condition(Func<TSource, bool> predicate)
 	{
 		// Wrap simple condition into the full signature
-		ConditionDelegate = new Func<TSource, TDestination, TMember, bool>((src, _, _) => condition(src));
+		ConditionDelegate = new Func<TSource, TDestination, TMember, bool>((src, _, _) => predicate(src));
 	}
 
-	public void PreCondition(Func<TSource, bool> condition)
+	public void PreCondition(Func<TSource, bool> predicate)
 	{
-		PreConditionDelegate = condition;
+		PreConditionDelegate = predicate;
 	}
 
 	public void NullSubstitute(TMember value)

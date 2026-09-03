@@ -1,4 +1,4 @@
-using PanoramicData.Mapper.Configuration.Annotations;
+﻿using PanoramicData.Mapper.Configuration.Annotations;
 using PanoramicData.Mapper.Internal;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -23,6 +23,22 @@ public static class Extensions
 		.Single(m => m.Name == nameof(Enumerable.ToArray) && m.GetParameters().Length == 1);
 
 	private static readonly IReadOnlyCollection<string> NoMembers = [];
+
+	/// <summary>
+	/// Non-primitive types that a projection nevertheless treats as scalar values rather than as
+	/// nested objects to expand member-by-member.
+	/// </summary>
+	private static readonly HashSet<Type> ScalarValueTypes =
+	[
+		typeof(string),
+		typeof(decimal),
+		typeof(DateTime),
+		typeof(DateTimeOffset),
+		typeof(TimeSpan),
+		typeof(Guid),
+		typeof(DateOnly),
+		typeof(TimeOnly),
+	];
 
 	/// <summary>
 	/// Projects the source queryable to the destination type using the mapper configuration.
@@ -142,51 +158,83 @@ public static class Extensions
 
 		foreach (var destProp in destProperties)
 		{
-			// Check for [Ignore] attribute
-			if (destProp.GetCustomAttribute<IgnoreAttribute>() is not null)
+			if (IsExcludedFromProjection(destProp, typeMap, membersToExpand))
 			{
 				continue;
 			}
 
-			// Check if explicitly ignored in the type map
-			if (typeMap is not null && typeMap.AllMembersIgnored)
+			if (TryResolveSourceValue(destProp, sourceAccess, sourceProperties, typeMap, out var sourceValue, out var sourceValueType))
 			{
-				continue;
-			}
-
-			if (typeMap is not null && typeMap.IgnoredMembers.Contains(destProp.Name))
-			{
-				continue;
-			}
-
-			// ExplicitExpansion: excluded from the projection unless explicitly requested.
-			if (typeMap is not null
-				&& typeMap.ExplicitExpansionMembers.Contains(destProp.Name)
-				&& !membersToExpand.Contains(destProp.Name))
-			{
-				continue;
-			}
-
-			// Check for custom MapFrom expression
-			if (typeMap is not null
-				&& typeMap.PropertyMappings.TryGetValue(destProp.Name, out var mapping)
-				&& mapping.SourceExpression is not null)
-			{
-				// Rebind the expression to use our source access (parameter or nested member)
-				var rebound = RebindExpression(mapping.SourceExpression, sourceAccess);
-				AddBinding(bindings, destProp, rebound, rebound.Type, provider, path);
-				continue;
-			}
-
-			// Convention-based: match by name
-			if (sourceProperties.TryGetValue(destProp.Name, out var sourceProp))
-			{
-				var sourceMember = Expression.Property(sourceAccess, sourceProp);
-				AddBinding(bindings, destProp, sourceMember, sourceProp.PropertyType, provider, path);
+				AddBinding(bindings, destProp, sourceValue, sourceValueType, provider, path);
 			}
 		}
 
 		return Expression.MemberInit(Expression.New(destType), bindings);
+	}
+
+	/// <summary>
+	/// Whether the destination member is kept out of the projection entirely, either by attribute
+	/// or by the type map's ignore / explicit-expansion configuration.
+	/// </summary>
+	private static bool IsExcludedFromProjection(
+		PropertyInfo destProp,
+		TypeMap? typeMap,
+		IReadOnlyCollection<string> membersToExpand)
+	{
+		if (destProp.GetCustomAttribute<IgnoreAttribute>() is not null)
+		{
+			return true;
+		}
+
+		if (typeMap is null)
+		{
+			return false;
+		}
+
+		if (typeMap.AllMembersIgnored || typeMap.IgnoredMembers.Contains(destProp.Name))
+		{
+			return true;
+		}
+
+		// ExplicitExpansion members are excluded from the projection unless explicitly requested.
+		return typeMap.ExplicitExpansionMembers.Contains(destProp.Name)
+			&& !membersToExpand.Contains(destProp.Name);
+	}
+
+	/// <summary>
+	/// Finds the source expression feeding a destination member - a configured MapFrom expression
+	/// if one exists, otherwise a same-named source property. Returns false when neither applies,
+	/// leaving the member unbound.
+	/// </summary>
+	private static bool TryResolveSourceValue(
+		PropertyInfo destProp,
+		Expression sourceAccess,
+		IReadOnlyDictionary<string, PropertyInfo> sourceProperties,
+		TypeMap? typeMap,
+		out Expression sourceValue,
+		out Type sourceValueType)
+	{
+		if (typeMap is not null
+			&& typeMap.PropertyMappings.TryGetValue(destProp.Name, out var mapping)
+			&& mapping.SourceExpression is not null)
+		{
+			// Rebind the expression to use our source access (parameter or nested member)
+			sourceValue = RebindExpression(mapping.SourceExpression, sourceAccess);
+			sourceValueType = sourceValue.Type;
+			return true;
+		}
+
+		// Convention-based: match by name
+		if (sourceProperties.TryGetValue(destProp.Name, out var sourceProp))
+		{
+			sourceValue = Expression.Property(sourceAccess, sourceProp);
+			sourceValueType = sourceProp.PropertyType;
+			return true;
+		}
+
+		sourceValue = null!;
+		sourceValueType = null!;
+		return false;
 	}
 
 	/// <summary>
@@ -243,43 +291,78 @@ public static class Extensions
 			return false;
 		}
 
-		// Collection of complex elements -> projected Select(...).
-		if (sourceType != typeof(string)
-			&& destType != typeof(string)
-			&& TypeMap.TryGetCollectionElementType(sourceType, out var srcElem)
-			&& TypeMap.TryGetCollectionElementType(destType, out var destElem)
-			&& !IsSimple(destElem))
-		{
-			var elementMap = provider.FindTypeMap(srcElem, destElem);
-			if (elementMap is not null && ShouldExpand((srcElem, destElem), elementMap, path))
-			{
-				binding = BuildCollectionProjection(
-					sourceValue, destType, srcElem, destElem, provider, Push(path, (srcElem, destElem)));
-			}
+		return TryBuildCollectionBinding(sourceValue, sourceType, destType, provider, path, out binding)
+			|| TryBuildNestedObjectBinding(sourceValue, sourceType, destType, provider, path, out binding);
+	}
 
-			// We own collection-of-complex members even when no element map exists: returning true
-			// (with a null binding) keeps the destination collection at its initializer default
-			// instead of emitting an InvalidCastException-throwing reference cast.
-			return true;
+	/// <summary>
+	/// Handles a collection of complex elements, projecting it to a <c>Select(...)</c> over an
+	/// element-wise member init.
+	/// </summary>
+	private static bool TryBuildCollectionBinding(
+		Expression sourceValue,
+		Type sourceType,
+		Type destType,
+		IConfigurationProvider provider,
+		IReadOnlyList<(Type Source, Type Dest)> path,
+		out Expression? binding)
+	{
+		binding = null;
+
+		if (sourceType == typeof(string)
+			|| destType == typeof(string)
+			|| !TypeMap.TryGetCollectionElementType(sourceType, out var srcElem)
+			|| !TypeMap.TryGetCollectionElementType(destType, out var destElem)
+			|| IsSimple(destElem))
+		{
+			return false;
 		}
 
-		// Single nested complex object -> projected new TDest { ... }, guarded for null source.
-		if (!IsSimple(sourceType) && !IsSimple(destType))
+		var elementMap = provider.FindTypeMap(srcElem, destElem);
+		if (elementMap is not null && ShouldExpand((srcElem, destElem), elementMap, path))
 		{
-			var nestedMap = provider.FindTypeMap(sourceType, destType);
-			if (nestedMap is not null)
-			{
-				if (ShouldExpand((sourceType, destType), nestedMap, path))
-				{
-					binding = BuildNestedObjectProjection(
-						sourceValue, sourceType, destType, provider, Push(path, (sourceType, destType)));
-				}
-
-				return true;
-			}
+			binding = BuildCollectionProjection(
+				sourceValue, destType, srcElem, destElem, provider, Push(path, (srcElem, destElem)));
 		}
 
-		return false;
+		// We own collection-of-complex members even when no element map exists: returning true
+		// (with a null binding) keeps the destination collection at its initializer default
+		// instead of emitting an InvalidCastException-throwing reference cast.
+		return true;
+	}
+
+	/// <summary>
+	/// Handles a single nested complex object, projecting it to <c>new TDest { ... }</c> guarded
+	/// for a null source.
+	/// </summary>
+	private static bool TryBuildNestedObjectBinding(
+		Expression sourceValue,
+		Type sourceType,
+		Type destType,
+		IConfigurationProvider provider,
+		IReadOnlyList<(Type Source, Type Dest)> path,
+		out Expression? binding)
+	{
+		binding = null;
+
+		if (IsSimple(sourceType) || IsSimple(destType))
+		{
+			return false;
+		}
+
+		var nestedMap = provider.FindTypeMap(sourceType, destType);
+		if (nestedMap is null)
+		{
+			return false;
+		}
+
+		if (ShouldExpand((sourceType, destType), nestedMap, path))
+		{
+			binding = BuildNestedObjectProjection(
+				sourceValue, sourceType, destType, provider, Push(path, (sourceType, destType)));
+		}
+
+		return true;
 	}
 
 	private static Expression BuildCollectionProjection(
@@ -374,16 +457,7 @@ public static class Extensions
 	private static bool IsSimple(Type type)
 	{
 		var underlying = Nullable.GetUnderlyingType(type) ?? type;
-		return underlying.IsPrimitive
-			|| underlying.IsEnum
-			|| underlying == typeof(string)
-			|| underlying == typeof(decimal)
-			|| underlying == typeof(DateTime)
-			|| underlying == typeof(DateTimeOffset)
-			|| underlying == typeof(TimeSpan)
-			|| underlying == typeof(Guid)
-			|| underlying == typeof(DateOnly)
-			|| underlying == typeof(TimeOnly);
+		return underlying.IsPrimitive || underlying.IsEnum || ScalarValueTypes.Contains(underlying);
 	}
 
 	private static Expression RebindExpression(LambdaExpression sourceExpression, Expression replacement)
@@ -406,58 +480,80 @@ public static class Extensions
 		// Any -> string: use ToString() (handles nullable, numeric, enum, etc.)
 		if (targetCore == typeof(string))
 		{
-			// For nullable source, coalesce to empty string to avoid NullReferenceException
-			if (Nullable.GetUnderlyingType(sourceType) is not null)
-			{
-				// (src.Prop == null) ? null : src.Prop.Value.ToString()
-				var hasValue = Expression.Property(expression, "HasValue");
-				var value = Expression.Property(expression, "Value");
-				var toString = Expression.Call(value, nameof(object.ToString), Type.EmptyTypes);
-				return Expression.Condition(hasValue, toString, Expression.Constant(null, typeof(string)));
-			}
-
-			return Expression.Call(expression, nameof(object.ToString), Type.EmptyTypes);
+			return ConvertToString(expression, sourceType);
 		}
 
 		// Nullable<T> -> non-nullable value type: coalesce to default(T) so EF Core
 		// generates COALESCE in SQL instead of throwing on NULL materialization
-		if (sourceCore != sourceType && targetCore == targetType && targetType.IsValueType)
+		if (NeedsNullCoalescing(sourceType, sourceCore, targetType, targetCore))
 		{
-			var coalesced = Expression.Coalesce(expression, Expression.Default(sourceCore));
-			if (sourceCore == targetType)
-			{
-				return coalesced;
-			}
-
-			// Different value type (e.g. int? -> double): coalesce then convert
-			try
-			{
-				return Expression.Convert(coalesced, targetType);
-			}
-			catch (InvalidOperationException)
-			{
-				return Expression.Default(targetType);
-			}
+			return CoalesceNullableSource(expression, sourceCore, targetType);
 		}
 
 		// An interface target that the source does not implement would compile to a reference cast
 		// that throws InvalidCastException at materialization. Leave the member at its default
 		// instead (complex collections/objects are handled earlier via TryBuildComplexBinding).
-		if (targetType.IsInterface && !targetType.IsAssignableFrom(sourceType))
+		if (IsUnimplementedInterface(sourceType, targetType))
 		{
 			return Expression.Default(targetType);
 		}
 
 		// Nullable<T> -> T or T -> Nullable<T> where T is the same core type
 		// or numeric/enum conversions where Expression.Convert has a CLR operator
+		return TryConvert(expression, targetType);
+	}
+
+	/// <summary>
+	/// A Nullable&lt;T&gt; source feeding a non-nullable value-type target has to be coalesced, or
+	/// a NULL row throws on materialization instead of yielding default(T).
+	/// </summary>
+	private static bool NeedsNullCoalescing(Type sourceType, Type sourceCore, Type targetType, Type targetCore)
+		=> sourceCore != sourceType && targetCore == targetType && targetType.IsValueType;
+
+	/// <summary>
+	/// An interface target the source type does not implement, which would otherwise compile to a
+	/// reference cast that only fails once EF Core materializes the row.
+	/// </summary>
+	private static bool IsUnimplementedInterface(Type sourceType, Type targetType)
+		=> targetType.IsInterface && !targetType.IsAssignableFrom(sourceType);
+
+	private static Expression ConvertToString(Expression expression, Type sourceType)
+	{
+		if (Nullable.GetUnderlyingType(sourceType) is null)
+		{
+			return Expression.Call(expression, nameof(object.ToString), Type.EmptyTypes);
+		}
+
+		// A nullable source needs the ToString() call guarded, or a NULL materialises as a
+		// NullReferenceException: (src.Prop == null) ? null : src.Prop.Value.ToString()
+		var hasValue = Expression.Property(expression, "HasValue");
+		var value = Expression.Property(expression, "Value");
+		var toString = Expression.Call(value, nameof(object.ToString), Type.EmptyTypes);
+		return Expression.Condition(hasValue, toString, Expression.Constant(null, typeof(string)));
+	}
+
+	private static Expression CoalesceNullableSource(Expression expression, Type sourceCore, Type targetType)
+	{
+		var coalesced = Expression.Coalesce(expression, Expression.Default(sourceCore));
+
+		// A different value type (e.g. int? -> double) still needs converting after the coalesce.
+		return sourceCore == targetType
+			? coalesced
+			: TryConvert(coalesced, targetType);
+	}
+
+	/// <summary>
+	/// Converts where a CLR coercion operator exists. Where none does (e.g. string -&gt; double?)
+	/// the binding is skipped by falling back to the target type's default.
+	/// </summary>
+	private static Expression TryConvert(Expression expression, Type targetType)
+	{
 		try
 		{
 			return Expression.Convert(expression, targetType);
 		}
 		catch (InvalidOperationException)
 		{
-			// No coercion operator exists (e.g. string -> double?) - skip this binding
-			// by returning a default value expression for the target type
 			return Expression.Default(targetType);
 		}
 	}

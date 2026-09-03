@@ -1,4 +1,4 @@
-using PanoramicData.Mapper.Internal;
+﻿using PanoramicData.Mapper.Internal;
 using System.Linq.Expressions;
 
 namespace PanoramicData.Mapper;
@@ -249,31 +249,25 @@ internal sealed class MappingExpression<TSource, TDestination>(TypeMap typeMap, 
 		{
 			typeMap.IgnoredMembers.Add(config.MemberName);
 			typeMap.PropertyMappings.Remove(config.MemberName);
+			return;
 		}
-		else
-		{
-			var mapping = new PropertyMapping(config.MemberName)
-			{
-				SourceExpression = config.SourceExpression,
-				Condition = config.ConditionDelegate,
-				PreCondition = config.PreConditionDelegate,
-				NullSubstitute = config.NullSubstituteValue,
-				HasNullSubstitute = config.HasNullSubstitute,
-				ValueResolverType = config.ValueResolverType,
-				ValueResolverInstance = config.ValueResolverInstance,
-				UseDestinationValue = config.UseDestValue
-			};
 
-			// Only store if there's actually something configured beyond just the name
-			if (config.SourceExpression is not null ||
-				config.ValueResolverType is not null ||
-				config.ConditionDelegate is not null ||
-				config.PreConditionDelegate is not null ||
-				config.HasNullSubstitute ||
-				config.UseDestValue)
-			{
-				typeMap.PropertyMappings[config.MemberName] = mapping;
-			}
+		// Only store if there's actually something configured beyond just the name
+		if (!config.HasConfiguration)
+		{
+			return;
 		}
+
+		typeMap.PropertyMappings[config.MemberName] = new PropertyMapping(config.MemberName)
+		{
+			SourceExpression = config.SourceExpression,
+			Condition = config.ConditionDelegate,
+			PreCondition = config.PreConditionDelegate,
+			NullSubstitute = config.NullSubstituteValue,
+			HasNullSubstitute = config.HasNullSubstitute,
+			ValueResolverType = config.ValueResolverType,
+			ValueResolverInstance = config.ValueResolverInstance,
+			UseDestinationValue = config.UseDestValue
+		};
 	}
 }

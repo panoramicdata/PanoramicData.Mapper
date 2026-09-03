@@ -1,4 +1,4 @@
-using PanoramicData.Mapper.Test.Models;
+﻿using PanoramicData.Mapper.Test.Models;
 
 namespace PanoramicData.Mapper.Test;
 
@@ -7,11 +7,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_List_MapsAllElements()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new List<SimpleSource>
         {
@@ -31,11 +27,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_Array_MapsAllElements()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new[]
         {
@@ -55,11 +47,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_EmptyCollection_ReturnsEmptyCollection()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new List<SimpleSource>();
 
@@ -71,11 +59,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_GenericOverload_List_MapsAllElements()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new List<SimpleSource>
         {
@@ -92,11 +76,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_RuntimeTypes_List_MapsAllElements()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new List<SimpleSource>
         {
@@ -113,8 +93,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_NoElementTypeMap_ThrowsAutoMapperMappingException()
     {
-        var config = new MapperConfiguration(cfg => { });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.CreateWithNoMaps();
 
         var source = new List<SimpleSource> { new() { Id = 1 } };
         var act = () => mapper.Map<List<SimpleDestination>>(source);
@@ -125,8 +104,7 @@ public class CollectionMappingTests
     [Fact]
     public void MapGeneric_NoElementTypeMap_ThrowsAutoMapperMappingException()
     {
-        var config = new MapperConfiguration(cfg => { });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.CreateWithNoMaps();
 
         var source = new List<SimpleSource> { new() { Id = 1 } };
         var act = () => mapper.Map<List<SimpleSource>, List<SimpleDestination>>(source);
@@ -137,11 +115,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_IEnumerableDestination_MapsAllElements()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new List<SimpleSource>
         {
@@ -157,11 +131,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_ArrayToList_MapsAllElements()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new[] { new SimpleSource { Id = 1, Name = "FromArray" } };
 
@@ -174,11 +144,7 @@ public class CollectionMappingTests
     [Fact]
     public void MapWithOptions_Collection_MapsAllElements()
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new ElementProfile());
-        });
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<ElementProfile>();
 
         var source = new List<SimpleSource>
         {
@@ -205,9 +171,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_CollectionProperty_IList_MapsCorrectly()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new OrderWithInterfaceProfile()));
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<OrderWithInterfaceProfile>();
 
         var source = new OrderSourceWithItems
         {
@@ -226,9 +190,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_CollectionProperty_ICollection_MapsCorrectly()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new OrderWithInterfaceProfile()));
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<OrderWithInterfaceProfile>();
 
         var source = new OrderSourceWithItems
         {
@@ -246,9 +208,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_CollectionProperty_IEnumerable_MapsCorrectly()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new OrderWithInterfaceProfile()));
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<OrderWithInterfaceProfile>();
 
         var source = new OrderSourceWithItems
         {
@@ -277,9 +237,7 @@ public class CollectionMappingTests
     [Fact]
     public void Map_CollectionProperty_IList_WithMapFrom_MapsCorrectly()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new OrderWithIListMapFromProfile()));
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<OrderWithIListMapFromProfile>();
 
         var source = new OrderSourceWithItems
         {

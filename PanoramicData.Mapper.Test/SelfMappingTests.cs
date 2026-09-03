@@ -207,8 +207,8 @@ public class SelfMappingTests
 
 		var dest = mapper.Map<SelfMapEntity, SelfMapEntity>(source, opts =>
 		{
-			opts.BeforeMap((s, d) => beforeCalled = true);
-			opts.AfterMap((s, d) => afterCalled = true);
+			opts.BeforeMap((_, _) => beforeCalled = true);
+			opts.AfterMap((_, _) => afterCalled = true);
 		});
 
 		dest.Should().NotBeSameAs(source);

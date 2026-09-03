@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace PanoramicData.Mapper;
 
@@ -30,17 +30,17 @@ public interface IMemberConfigurationExpression<TSource, TDestination, TMember>
 	/// <summary>
 	/// Only map this member if the condition is met. Evaluated after the value is resolved.
 	/// </summary>
-	void Condition(Func<TSource, TDestination, TMember, bool> condition);
+	void Condition(Func<TSource, TDestination, TMember, bool> predicate);
 
 	/// <summary>
 	/// Only map this member if the condition is met (simple source-only overload).
 	/// </summary>
-	void Condition(Func<TSource, bool> condition);
+	void Condition(Func<TSource, bool> predicate);
 
 	/// <summary>
 	/// Pre-condition evaluated before resolving the source value. If false, skip this member entirely.
 	/// </summary>
-	void PreCondition(Func<TSource, bool> condition);
+	void PreCondition(Func<TSource, bool> predicate);
 
 	/// <summary>
 	/// Use the specified value when the source value resolves to null.

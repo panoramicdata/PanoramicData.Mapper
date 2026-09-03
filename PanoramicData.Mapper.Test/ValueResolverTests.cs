@@ -32,7 +32,7 @@ public class ValueResolverTests
 
     private class FullNameResolver : IValueResolver<ValueResolverSource, ValueResolverDest, string>
     {
-        public string Resolve(ValueResolverSource source, ValueResolverDest _destination, string _destMember, ResolutionContext context)
+        public string Resolve(ValueResolverSource source, ValueResolverDest _, string _destMember, ResolutionContext context)
             => $"{source.FirstName} {source.LastName}";
     }
 
@@ -104,7 +104,7 @@ public class ValueResolverTests
 
     private class DestCapturingResolver(Action<ValueResolverDest> capture) : IValueResolver<ValueResolverSource, ValueResolverDest, string>
     {
-        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
+        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string _, ResolutionContext context)
         {
             capture(destination);
             return $"{source.FirstName} {source.LastName}";

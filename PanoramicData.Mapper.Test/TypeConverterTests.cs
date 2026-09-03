@@ -82,7 +82,7 @@ public class TypeConverterTests
 
     private class RepeatConverter : ITypeConverter<ConverterSource, ConverterDest>
     {
-        public ConverterDest Convert(ConverterSource source, ConverterDest _destination, ResolutionContext context)
+        public ConverterDest Convert(ConverterSource source, ConverterDest _, ResolutionContext context)
             => new() { Result = string.Concat(Enumerable.Repeat(source.Value, source.Multiplier)) };
     }
 
@@ -138,7 +138,7 @@ public class TypeConverterTests
 
     private class DestCapturingConverter(Action<ConverterDest?> capture) : ITypeConverter<ConverterSource, ConverterDest>
     {
-        public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext context)
+        public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext _)
         {
             capture(destination);
             return new ConverterDest { Result = source.Value };

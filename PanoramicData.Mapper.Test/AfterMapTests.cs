@@ -45,7 +45,7 @@ public class AfterMapTests
 
 	private class TestMappingAction : IMappingAction<SimpleSource, SimpleDestination>
 	{
-		public void Process(SimpleSource source, SimpleDestination destination, ResolutionContext context)
+		public void Process(SimpleSource _, SimpleDestination destination, ResolutionContext context)
 		{
 			destination.Name = "PROCESSED";
 		}
@@ -97,7 +97,7 @@ public class AfterMapTests
 		public AfterMapLambdaForExistingProfile()
 		{
 			CreateMap<SimpleSource, SimpleDestination>()
-				.AfterMap((src, dest) => dest.Name += "-post");
+				.AfterMap((_, dest) => dest.Name += "-post");
 		}
 	}
 }

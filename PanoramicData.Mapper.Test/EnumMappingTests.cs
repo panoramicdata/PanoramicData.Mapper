@@ -216,7 +216,7 @@ public class EnumMappingTests
 		public IntToEnumAfterMapProfile()
 		{
 			CreateMap<IntToEnumSource, EnumDestination>()
-				.AfterMap((s, d) => d.Status = MyStatus.Inactive);
+				.AfterMap((_, d) => d.Status = MyStatus.Inactive);
 		}
 	}
 }
