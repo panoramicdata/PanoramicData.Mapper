@@ -6,6 +6,18 @@ namespace PanoramicData.Mapper.Test;
 
 public class PerformanceTests
 {
+    private static SimpleSource CreateSource(decimal amount)
+    {
+        return new SimpleSource
+        {
+            Id = 1,
+            Name = "Test",
+            Description = "Desc",
+            CreatedDate = DateTime.UtcNow,
+            Amount = amount
+        };
+    }
+
     [Fact]
     public void ConfigurationCreation_CompletesWithinReasonableTime()
     {
@@ -27,14 +39,7 @@ public class PerformanceTests
     {
         var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
         var mapper = config.CreateMapper();
-        var source = new SimpleSource
-        {
-            Id = 1,
-            Name = "Test",
-            Description = "Desc",
-            CreatedDate = DateTime.UtcNow,
-            Amount = 99.95m
-        };
+        var source = CreateSource(99.95m);
 
         // Warm up (triggers compiled mapper creation)
         mapper.Map<SimpleDestination>(source);
@@ -90,14 +95,7 @@ public class PerformanceTests
     {
         var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
         var mapper = config.CreateMapper();
-        var source = new SimpleSource
-        {
-            Id = 1,
-            Name = "Test",
-            Description = "Desc",
-            CreatedDate = DateTime.UtcNow,
-            Amount = 10m
-        };
+        var source = CreateSource(10m);
 
         // First call triggers compilation
         var sw1 = Stopwatch.StartNew();

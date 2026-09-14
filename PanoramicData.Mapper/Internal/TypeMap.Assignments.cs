@@ -1,4 +1,5 @@
-﻿using PanoramicData.Mapper.Configuration.Annotations;
+#pragma warning disable S2333 // partial is required: class is split across multiple files
+using PanoramicData.Mapper.Configuration.Annotations;
 using System.Collections;
 using System.Reflection;
 

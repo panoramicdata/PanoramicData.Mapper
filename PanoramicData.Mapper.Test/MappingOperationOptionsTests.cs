@@ -1,4 +1,4 @@
-﻿using PanoramicData.Mapper.Test.Models;
+using PanoramicData.Mapper.Test.Models;
 
 namespace PanoramicData.Mapper.Test;
 
@@ -16,16 +16,17 @@ public class MappingOperationOptionsTests
                 .AfterMap((_, d) => d.Name += " - Profile");
     }
 
+    private static SimpleDestination MapWithOptions(Action<IMappingOperationOptions<SimpleSource, SimpleDestination>> configure)
+    {
+        var mapper = MapperFactory.Create<SimpleMapProfile>();
+        var source = new SimpleSource { Id = 1, Name = "Test" };
+        return mapper.Map<SimpleSource, SimpleDestination>(source, configure);
+    }
+
     [Fact]
     public void Map_WithAfterMap_ExecutesAfterMapping()
     {
-        var mapper = MapperFactory.Create<SimpleMapProfile>();
-
-        var source = new SimpleSource { Id = 1, Name = "Test" };
-
-        var dest = mapper.Map<SimpleSource, SimpleDestination>(
-            source,
-            opts => opts.AfterMap((src, d) => d.Name = src.Name + " - Modified"));
+        var dest = MapWithOptions(opts => opts.AfterMap((src, d) => d.Name = src.Name + " - Modified"));
 
         dest.Id.Should().Be(1);
         dest.Name.Should().Be("Test - Modified");
@@ -34,14 +35,9 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithBeforeMap_ExecutesBeforeMapping()
     {
-        var mapper = MapperFactory.Create<SimpleMapProfile>();
-
-        var source = new SimpleSource { Id = 1, Name = "Test" };
         var beforeCalled = false;
 
-        var dest = mapper.Map<SimpleSource, SimpleDestination>(
-            source,
-            opts => opts.BeforeMap((_, _) => beforeCalled = true));
+        var dest = MapWithOptions(opts => opts.BeforeMap((_, _) => beforeCalled = true));
 
         dest.Id.Should().Be(1);
         beforeCalled.Should().BeTrue();
@@ -69,17 +65,11 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithMultipleAfterMaps_ExecutesAllInOrder()
     {
-        var mapper = MapperFactory.Create<SimpleMapProfile>();
-
-        var source = new SimpleSource { Id = 1, Name = "Test" };
-
-        var dest = mapper.Map<SimpleSource, SimpleDestination>(
-            source,
-            opts =>
-            {
-                opts.AfterMap((_, d) => d.Name += " - First");
-                opts.AfterMap((_, d) => d.Name += " - Second");
-            });
+        var dest = MapWithOptions(opts =>
+        {
+            opts.AfterMap((_, d) => d.Name += " - First");
+            opts.AfterMap((_, d) => d.Name += " - Second");
+        });
 
         dest.Name.Should().Be("Test - First - Second");
     }
@@ -87,17 +77,11 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithItems_CanPassContextualData()
     {
-        var mapper = MapperFactory.Create<SimpleMapProfile>();
-
-        var source = new SimpleSource { Id = 1, Name = "Test" };
-
-        var dest = mapper.Map<SimpleSource, SimpleDestination>(
-            source,
-            opts =>
-            {
-                opts.Items["suffix"] = " - Custom";
-                opts.AfterMap((_, d) => d.Name += (string)opts.Items["suffix"]);
-            });
+        var dest = MapWithOptions(opts =>
+        {
+            opts.Items["suffix"] = " - Custom";
+            opts.AfterMap((_, d) => d.Name += (string)opts.Items["suffix"]);
+        });
 
         dest.Name.Should().Be("Test - Custom");
     }
@@ -105,13 +89,7 @@ public class MappingOperationOptionsTests
     [Fact]
     public void Map_WithNullOpts_ThrowsArgumentNullException()
     {
-        var mapper = MapperFactory.Create<SimpleMapProfile>();
-
-        var source = new SimpleSource { Id = 1, Name = "Test" };
-
-        var act = () => mapper.Map<SimpleSource, SimpleDestination>(
-            source,
-            (Action<IMappingOperationOptions<SimpleSource, SimpleDestination>>)null!);
+        var act = () => MapWithOptions((Action<IMappingOperationOptions<SimpleSource, SimpleDestination>>)null!);
 
         act.Should().Throw<ArgumentNullException>();
     }

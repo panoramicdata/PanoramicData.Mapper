@@ -7,12 +7,7 @@ public class ConditionalMappingTests
     [Fact]
     public void Condition_WhenTrue_MapsValue()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new ConditionProfile()));
-        var mapper = config.CreateMapper();
-
-        var source = new ConditionalSource { Id = 1, Name = "Hello", Age = 25, IsActive = true };
-        var dest = mapper.Map<ConditionalDest>(source);
+        var dest = MapWithProfile(new ConditionProfile(), new ConditionalSource { Id = 1, Name = "Hello", Age = 25, IsActive = true });
 
         dest.Name.Should().Be("Hello");
     }
@@ -20,12 +15,7 @@ public class ConditionalMappingTests
     [Fact]
     public void Condition_WhenFalse_SkipsMapping()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new ConditionProfile()));
-        var mapper = config.CreateMapper();
-
-        var source = new ConditionalSource { Id = 1, Name = "Hello", Age = 25, IsActive = false };
-        var dest = mapper.Map<ConditionalDest>(source);
+        var dest = MapWithProfile(new ConditionProfile(), new ConditionalSource { Id = 1, Name = "Hello", Age = 25, IsActive = false });
 
         dest.Name.Should().Be("default"); // Not mapped because IsActive is false
     }
@@ -33,12 +23,7 @@ public class ConditionalMappingTests
     [Fact]
     public void PreCondition_WhenFalse_SkipsMember()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new PreConditionProfile()));
-        var mapper = config.CreateMapper();
-
-        var source = new ConditionalSource { Id = 1, Name = "Hello", Age = -1, IsActive = true };
-        var dest = mapper.Map<ConditionalDest>(source);
+        var dest = MapWithProfile(new PreConditionProfile(), new ConditionalSource { Id = 1, Name = "Hello", Age = -1, IsActive = true });
 
         dest.Age.Should().Be(0); // PreCondition skips because Age < 0
     }
@@ -46,14 +31,18 @@ public class ConditionalMappingTests
     [Fact]
     public void PreCondition_WhenTrue_MapsValue()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new PreConditionProfile()));
-        var mapper = config.CreateMapper();
-
-        var source = new ConditionalSource { Id = 1, Name = "Hello", Age = 30, IsActive = true };
-        var dest = mapper.Map<ConditionalDest>(source);
+        var dest = MapWithProfile(new PreConditionProfile(), new ConditionalSource { Id = 1, Name = "Hello", Age = 30, IsActive = true });
 
         dest.Age.Should().Be(30);
+    }
+
+    private static ConditionalDest MapWithProfile(Profile profile, ConditionalSource source)
+    {
+        var config = new MapperConfiguration(cfg =>
+            cfg.AddProfile(profile));
+        var mapper = config.CreateMapper();
+
+        return mapper.Map<ConditionalDest>(source);
     }
 
     private class ConditionProfile : Profile

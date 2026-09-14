@@ -1,8 +1,8 @@
-﻿namespace PanoramicData.Mapper.Test.Models;
+namespace PanoramicData.Mapper.Test.Models;
 
 // Models shared across the basic mapping tests.
 
-public class SimpleSource
+public abstract class SimpleEntity
 {
 	public int Id { get; set; }
 	public string Name { get; set; } = string.Empty;
@@ -11,13 +11,12 @@ public class SimpleSource
 	public decimal Amount { get; set; }
 }
 
-public class SimpleDestination
+public class SimpleSource : SimpleEntity
 {
-	public int Id { get; set; }
-	public string Name { get; set; } = string.Empty;
-	public string Description { get; set; } = string.Empty;
-	public DateTime CreatedDate { get; set; }
-	public decimal Amount { get; set; }
+}
+
+public class SimpleDestination : SimpleEntity
+{
 }
 
 public class SourceWithExtra
@@ -79,16 +78,18 @@ public class CloneableEntity
 	public string Data { get; set; } = string.Empty;
 }
 
-public class SourceForTransform
+public class TransformPair
 {
 	public string ChannelWidth { get; set; } = string.Empty;
 	public string Power { get; set; } = string.Empty;
 }
 
-public class DestForTransform
+public class SourceForTransform : TransformPair
 {
-	public string ChannelWidth { get; set; } = string.Empty;
-	public string Power { get; set; } = string.Empty;
+}
+
+public class DestForTransform : TransformPair
+{
 }
 
 public class PersonSource

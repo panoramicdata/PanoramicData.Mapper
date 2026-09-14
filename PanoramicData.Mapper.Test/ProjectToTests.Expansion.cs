@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+#pragma warning disable S2333 // partial is required: class is split across multiple files
+using Microsoft.EntityFrameworkCore;
 using PanoramicData.Mapper.Test.Models;
 
 namespace PanoramicData.Mapper.Test;
@@ -69,13 +70,7 @@ public partial class ProjectToTests
 	{
 		var config = new MapperConfiguration(cfg => cfg.AddProfile(new TreeProjectProfile()));
 
-		using var context = CreateContext();
-		SeedTree(context);
-
-		var projected = context.ProjTrees
-			.Where(t => t.Id == 1)
-			.ProjectTo<ProjTreeDto>(config)
-			.Single();
+		var projected = ProjectRootTree(config);
 
 		projected.Name.Should().Be("Root");
 		projected.Child.Should().NotBeNull();
@@ -88,13 +83,7 @@ public partial class ProjectToTests
 	{
 		var config = new MapperConfiguration(cfg => cfg.AddProfile(new TreeMaxDepthProjectProfile()));
 
-		using var context = CreateContext();
-		SeedTree(context);
-
-		var projected = context.ProjTrees
-			.Where(t => t.Id == 1)
-			.ProjectTo<ProjTreeDto>(config)
-			.Single();
+		var projected = ProjectRootTree(config);
 
 		projected.Name.Should().Be("Root");
 		projected.Child!.Name.Should().Be("Child");
@@ -142,5 +131,16 @@ public partial class ProjectToTests
 		var act = config.AssertConfigurationIsValid;
 
 		act.Should().NotThrow();
+	}
+
+	private static ProjTreeDto ProjectRootTree(MapperConfiguration config)
+	{
+		using var context = CreateContext();
+		SeedTree(context);
+
+		return context.ProjTrees
+			.Where(t => t.Id == 1)
+			.ProjectTo<ProjTreeDto>(config)
+			.Single();
 	}
 }

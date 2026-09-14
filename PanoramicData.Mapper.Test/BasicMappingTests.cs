@@ -5,6 +5,18 @@ namespace PanoramicData.Mapper.Test;
 
 public class BasicMappingTests
 {
+	private static IMapper CreateProfiledMapper()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
+		return config.CreateMapper();
+	}
+
+	private static IMapper CreateEmptyMapper()
+	{
+		var config = new MapperConfiguration(cfg => { });
+		return config.CreateMapper();
+	}
+
 	[Fact]
 	public void MapperConfiguration_NullAction_Throws()
 	{
@@ -16,8 +28,7 @@ public class BasicMappingTests
 	[Fact]
 	public void Map_SimpleConvention_MapsAllProperties()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var source = new SimpleSource
 		{
@@ -40,8 +51,7 @@ public class BasicMappingTests
 	[Fact]
 	public void Map_WithGenericTypes_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var source = new SimpleSource { Id = 1, Name = "Hello" };
 		var dest = mapper.Map<SimpleSource, SimpleDestination>(source);
@@ -53,8 +63,7 @@ public class BasicMappingTests
 	[Fact]
 	public void Map_MissingTypeMap_ThrowsAutoMapperMappingException()
 	{
-		var config = new MapperConfiguration(cfg => { });
-		var mapper = config.CreateMapper();
+		var mapper = CreateEmptyMapper();
 
 		var source = new SimpleSource { Id = 1 };
 		var act = () => mapper.Map<SimpleDestination>(source);
@@ -65,8 +74,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapGeneric_MissingTypeMap_ThrowsAutoMapperMappingException()
 	{
-		var config = new MapperConfiguration(cfg => { });
-		var mapper = config.CreateMapper();
+		var mapper = CreateEmptyMapper();
 
 		var act = () => mapper.Map<SimpleSource, SimpleDestination>(new SimpleSource());
 
@@ -76,8 +84,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapRuntimeTypes_MissingTypeMap_ThrowsAutoMapperMappingException()
 	{
-		var config = new MapperConfiguration(cfg => { });
-		var mapper = config.CreateMapper();
+		var mapper = CreateEmptyMapper();
 
 		var act = () => mapper.Map(new SimpleSource(), typeof(SimpleSource), typeof(SimpleDestination));
 
@@ -87,8 +94,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapRuntimeTypesToExisting_MissingTypeMap_ThrowsAutoMapperMappingException()
 	{
-		var config = new MapperConfiguration(cfg => { });
-		var mapper = config.CreateMapper();
+		var mapper = CreateEmptyMapper();
 
 		var act = () => mapper.Map(new SimpleSource(), new SimpleDestination(), typeof(SimpleSource), typeof(SimpleDestination));
 
@@ -98,8 +104,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapWithOptions_MissingTypeMap_ThrowsAutoMapperMappingException()
 	{
-		var config = new MapperConfiguration(cfg => { });
-		var mapper = config.CreateMapper();
+		var mapper = CreateEmptyMapper();
 
 		var act = () => mapper.Map<SimpleSource, SimpleDestination>(new SimpleSource(), opts => { });
 
@@ -109,8 +114,7 @@ public class BasicMappingTests
 	[Fact]
 	public void Map_NullSource_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map<SimpleDestination>((object)null!);
 
@@ -120,8 +124,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapGeneric_NullSource_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map<SimpleSource, SimpleDestination>(null!);
 
@@ -131,8 +134,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapToExisting_NullSource_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map<SimpleSource, SimpleDestination>(null!, new SimpleDestination());
 
@@ -142,8 +144,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapToExisting_NullDestination_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map(new SimpleSource(), (SimpleDestination)null!);
 
@@ -153,8 +154,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapRuntimeTypes_NullSource_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map(null!, typeof(SimpleSource), typeof(SimpleDestination));
 
@@ -164,8 +164,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapRuntimeTypesToExisting_NullSource_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map(null!, new SimpleDestination(), typeof(SimpleSource), typeof(SimpleDestination));
 
@@ -175,8 +174,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapRuntimeTypesToExisting_NullDestination_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map(new SimpleSource(), null!, typeof(SimpleSource), typeof(SimpleDestination));
 
@@ -186,8 +184,7 @@ public class BasicMappingTests
 	[Fact]
 	public void MapWithOptions_NullSource_ThrowsArgumentNullException()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<SimpleProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateProfiledMapper();
 
 		var act = () => mapper.Map<SimpleSource, SimpleDestination>(null!, opts => { });
 

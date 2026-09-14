@@ -7,31 +7,43 @@ public class BeforeMapTests
     [Fact]
     public void BeforeMap_Lambda_ExecutesBeforeMapping()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new BeforeMapLambdaProfile()));
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<BeforeMapLambdaProfile>();
 
         var source = new BeforeMapSource { Id = 1, Name = "Test" };
         var dest = mapper.Map<BeforeMapDest>(source);
 
-        dest.Id.Should().Be(1);
-        dest.Name.Should().Be("Test");
-        dest.Tag.Should().Be("pre-processed");
+        AssertMapped(dest, 1, "Test", "pre-processed");
     }
 
     [Fact]
     public void BeforeMap_MappingAction_ExecutesBeforeMapping()
     {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new BeforeMapActionProfile()));
-        var mapper = config.CreateMapper();
+        var mapper = MapperFactory.Create<BeforeMapActionProfile>();
 
         var source = new BeforeMapSource { Id = 5, Name = "ActionTest" };
         var dest = mapper.Map<BeforeMapDest>(source);
 
-        dest.Id.Should().Be(5);
-        dest.Name.Should().Be("ActionTest");
-        dest.Tag.Should().Be("action-tag");
+        AssertMapped(dest, 5, "ActionTest", "action-tag");
+    }
+
+    [Fact]
+    public void BeforeMap_Lambda_MapToExisting_ExecutesBeforeMapping()
+    {
+        var mapper = MapperFactory.Create<BeforeMapLambdaProfile>();
+
+        var source = new BeforeMapSource { Id = 1, Name = "Test" };
+        var dest = new BeforeMapDest { Tag = "original" };
+
+        mapper.Map(source, dest);
+
+        AssertMapped(dest, 1, "Test", "pre-processed");
+    }
+
+    private static void AssertMapped(BeforeMapDest dest, int id, string name, string tag)
+    {
+        dest.Id.Should().Be(id);
+        dest.Name.Should().Be(name);
+        dest.Tag.Should().Be(tag);
     }
 
     private class BeforeMapLambdaProfile : Profile
@@ -45,8 +57,10 @@ public class BeforeMapTests
 
     private class BeforeMapAction : IMappingAction<BeforeMapSource, BeforeMapDest>
     {
-        public void Process(BeforeMapSource _, BeforeMapDest destination, ResolutionContext context)
+        public void Process(BeforeMapSource source, BeforeMapDest destination, ResolutionContext context)
         {
+            source.Should().NotBeNull();
+            context.Should().NotBeNull();
             destination.Tag = "action-tag";
         }
     }
@@ -58,22 +72,5 @@ public class BeforeMapTests
             CreateMap<BeforeMapSource, BeforeMapDest>()
                 .BeforeMap<BeforeMapAction>();
         }
-    }
-
-    [Fact]
-    public void BeforeMap_Lambda_MapToExisting_ExecutesBeforeMapping()
-    {
-        var config = new MapperConfiguration(cfg =>
-            cfg.AddProfile(new BeforeMapLambdaProfile()));
-        var mapper = config.CreateMapper();
-
-        var source = new BeforeMapSource { Id = 1, Name = "Test" };
-        var dest = new BeforeMapDest { Tag = "original" };
-
-        mapper.Map(source, dest);
-
-        dest.Id.Should().Be(1);
-        dest.Name.Should().Be("Test");
-        dest.Tag.Should().Be("pre-processed");
     }
 }

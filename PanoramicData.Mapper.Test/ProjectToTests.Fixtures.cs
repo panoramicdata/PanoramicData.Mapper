@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+#pragma warning disable S2333 // partial is required: class is split across multiple files
+using Microsoft.EntityFrameworkCore;
 using PanoramicData.Mapper.Test.Models;
 
 namespace PanoramicData.Mapper.Test;

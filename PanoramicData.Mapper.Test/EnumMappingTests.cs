@@ -7,12 +7,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_IntToEnum_SameNameProperty_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IntToEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new IntToEnumSource { Status = 3 };
-		var dest = mapper.Map<EnumDestination>(source);
+		var dest = Map<IntToEnumProfile, IntToEnumSource, EnumDestination>(source => source.Status = 3);
 
 		dest.Status.Should().Be(MyStatus.Deleted);
 	}
@@ -20,12 +15,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_EnumToInt_SameNameProperty_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new EnumToIntProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new EnumToIntSource { Status = MyStatus.Active };
-		var dest = mapper.Map<IntDestination>(source);
+		var dest = Map<EnumToIntProfile, EnumToIntSource, IntDestination>(source => source.Status = MyStatus.Active);
 
 		dest.Status.Should().Be(1);
 	}
@@ -33,12 +23,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_IntToEnum_InvalidValue_StillCasts()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IntToEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new IntToEnumSource { Status = 999 };
-		var dest = mapper.Map<EnumDestination>(source);
+		var dest = Map<IntToEnumProfile, IntToEnumSource, EnumDestination>(source => source.Status = 999);
 
 		dest.Status.Should().Be((MyStatus)999);
 	}
@@ -46,12 +31,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_IntToEnum_WithIgnore_DoesNotMap()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IntToEnumIgnoreProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new IntToEnumSource { Status = 3 };
-		var dest = mapper.Map<EnumDestination>(source);
+		var dest = Map<IntToEnumIgnoreProfile, IntToEnumSource, EnumDestination>(source => source.Status = 3);
 
 		dest.Status.Should().Be(MyStatus.Unknown);
 	}
@@ -59,12 +39,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_IntToEnum_WithExplicitMapFrom_UsesExplicitMapping()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IntToEnumExplicitProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new IntToEnumSource { Status = 3 };
-		var dest = mapper.Map<EnumDestination>(source);
+		var dest = Map<IntToEnumExplicitProfile, IntToEnumSource, EnumDestination>(source => source.Status = 3);
 
 		dest.Status.Should().Be(MyStatus.Inactive);
 	}
@@ -72,12 +47,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_NullableIntToNullableEnum_NullValue_MapsNull()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new NullableIntToNullableEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new NullableIntToNullableEnumSource { Status = null };
-		var dest = mapper.Map<NullableEnumDestination>(source);
+		var dest = Map<NullableIntToNullableEnumProfile, NullableIntToNullableEnumSource, NullableEnumDestination>(source => source.Status = null);
 
 		dest.Status.Should().BeNull();
 	}
@@ -85,12 +55,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_NullableIntToNullableEnum_WithValue_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new NullableIntToNullableEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new NullableIntToNullableEnumSource { Status = 2 };
-		var dest = mapper.Map<NullableEnumDestination>(source);
+		var dest = Map<NullableIntToNullableEnumProfile, NullableIntToNullableEnumSource, NullableEnumDestination>(source => source.Status = 2);
 
 		dest.Status.Should().Be(MyStatus.Inactive);
 	}
@@ -98,12 +63,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_IntToNullableEnum_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IntToNullableEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new IntToNullableEnumSource { Status = 1 };
-		var dest = mapper.Map<NullableEnumDestination>(source);
+		var dest = Map<IntToNullableEnumProfile, IntToNullableEnumSource, NullableEnumDestination>(source => source.Status = 1);
 
 		dest.Status.Should().Be(MyStatus.Active);
 	}
@@ -111,12 +71,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_NullableIntToEnum_WithValue_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new NullableIntToEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new NullableIntToEnumSource { Status = 3 };
-		var dest = mapper.Map<EnumDestination>(source);
+		var dest = Map<NullableIntToEnumProfile, NullableIntToEnumSource, EnumDestination>(source => source.Status = 3);
 
 		dest.Status.Should().Be(MyStatus.Deleted);
 	}
@@ -124,12 +79,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_NullableIntToEnum_NullValue_DefaultsToZero()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new NullableIntToEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new NullableIntToEnumSource { Status = null };
-		var dest = mapper.Map<EnumDestination>(source);
+		var dest = Map<NullableIntToEnumProfile, NullableIntToEnumSource, EnumDestination>(source => source.Status = null);
 
 		dest.Status.Should().Be(MyStatus.Unknown);
 	}
@@ -137,12 +87,7 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_EnumToEnum_SameType_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new EnumToEnumProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new EnumToEnumSource { Status = MyStatus.Deleted };
-		var dest = mapper.Map<EnumToEnumDestination>(source);
+		var dest = Map<EnumToEnumProfile, EnumToEnumSource, EnumToEnumDestination>(source => source.Status = MyStatus.Deleted);
 
 		dest.Status.Should().Be(MyStatus.Deleted);
 	}
@@ -150,14 +95,24 @@ public class EnumMappingTests
 	[Fact]
 	public void Map_IntToEnum_AfterMapStillRuns()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IntToEnumAfterMapProfile()));
-		var mapper = config.CreateMapper();
-
-		var source = new IntToEnumSource { Status = 3 };
-		var dest = mapper.Map<EnumDestination>(source);
+		var dest = Map<IntToEnumAfterMapProfile, IntToEnumSource, EnumDestination>(source => source.Status = 3);
 
 		dest.Status.Should().Be(MyStatus.Inactive);
+	}
+
+	private static TDest Map<TProfile, TSource, TDest>(Action<TSource> initSource)
+		where TProfile : Profile, new()
+		where TSource : class, new()
+		where TDest : class
+	{
+		var config = new MapperConfiguration(cfg =>
+			cfg.AddProfile(new TProfile()));
+		var mapper = config.CreateMapper();
+
+		var source = new TSource();
+		initSource(source);
+
+		return mapper.Map<TDest>(source);
 	}
 
 	private class IntToEnumProfile : Profile

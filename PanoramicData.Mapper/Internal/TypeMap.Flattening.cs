@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+#pragma warning disable S2333 // partial is required: class is split across multiple files
+using System.Reflection;
 
 namespace PanoramicData.Mapper.Internal;
 

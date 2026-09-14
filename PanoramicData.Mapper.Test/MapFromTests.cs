@@ -5,11 +5,17 @@ namespace PanoramicData.Mapper.Test;
 
 public class MapFromTests
 {
+	private static IMapper CreateMapper<TProfile>()
+		where TProfile : Profile, new()
+	{
+		var config = new MapperConfiguration(cfg => cfg.AddProfile<TProfile>());
+		return config.CreateMapper();
+	}
+
 	[Fact]
 	public void MapFrom_NestedProperty_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<MapFromProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper<MapFromProfile>();
 
 		var source = new SourceWithNested
 		{
@@ -27,8 +33,7 @@ public class MapFromTests
 	[Fact]
 	public void MapFrom_WithTransform_AppliesTransformation()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<MapFromWithTransformProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper<MapFromWithTransformProfile>();
 
 		var source = new SourceForTransform
 		{
@@ -45,8 +50,7 @@ public class MapFromTests
 	[Fact]
 	public void MapFrom_ComputedExpression_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<MapFromComputedProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper<MapFromComputedProfile>();
 
 		var source = new PersonSource
 		{
@@ -64,8 +68,7 @@ public class MapFromTests
 	[Fact]
 	public void ForMember_StringName_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg => cfg.AddProfile<StringNameProfile>());
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper<StringNameProfile>();
 
 		var source = new SourceWithExtra { Id = 1, Name = "Test", Extra = "data" };
 		var dest = mapper.Map<DestinationWithExtra>(source);

@@ -1,6 +1,20 @@
+using System.Linq.Expressions;
 using PanoramicData.Mapper.Test.Models;
 
 namespace PanoramicData.Mapper.Test.Profiles;
+
+internal static class ProfileHelper
+{
+	public static void IgnoreMembers<TSource, TDestination>(
+		IMappingExpression<TSource, TDestination> map,
+		params Expression<Func<TDestination, object?>>[] members)
+	{
+		foreach (var member in members)
+		{
+			map.ForMember(member, opt => opt.Ignore());
+		}
+	}
+}
 
 public class SimpleProfile : Profile
 {
@@ -14,9 +28,8 @@ public class IgnoreProfile : Profile
 {
 	public IgnoreProfile()
 	{
-		CreateMap<SimpleSource, DestinationWithIgnoredProps>()
-			.ForMember(d => d.Secret, opt => opt.Ignore())
-			.ForMember(d => d.Timestamp, opt => opt.Ignore());
+		var map = CreateMap<SimpleSource, DestinationWithIgnoredProps>();
+		ProfileHelper.IgnoreMembers(map, d => d.Secret, d => d.Timestamp);
 	}
 }
 
@@ -53,14 +66,12 @@ public class AfterMapProfile : Profile
 {
 	public AfterMapProfile()
 	{
-		CreateMap<CloneableEntity, CloneableEntity>()
-			.ForMember(d => d.Id, opt => opt.Ignore())
-			.ForMember(d => d.CreatedDateTimeUtc, opt => opt.Ignore())
-			.ForMember(d => d.LastModifiedDateTimeUtc, opt => opt.Ignore())
-			.AfterMap((src, dst) =>
-			{
-				dst.Name = $"{src.Name} - Clone";
-			});
+		var map = CreateMap<CloneableEntity, CloneableEntity>();
+		ProfileHelper.IgnoreMembers(map, d => d.Id, d => d.CreatedDateTimeUtc, d => d.LastModifiedDateTimeUtc);
+		map.AfterMap((src, dst) =>
+		{
+			dst.Name = $"{src.Name} - Clone";
+		});
 	}
 }
 
