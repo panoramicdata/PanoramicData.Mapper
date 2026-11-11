@@ -102,7 +102,7 @@ public class ValueResolverTests
         }
     }
 
-    private class DestCapturingResolver(Action<ValueResolverDest> capture) : IValueResolver<ValueResolverSource, ValueResolverDest, string>
+    private class DestCapturingResolver(Action<ValueResolverDest?> capture) : IValueResolver<ValueResolverSource, ValueResolverDest, string>
     {
         public string Resolve(ValueResolverSource source, ValueResolverDest destination, string _, ResolutionContext context)
         {
