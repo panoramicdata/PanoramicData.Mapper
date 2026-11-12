@@ -47,7 +47,7 @@ public sealed partial class TypeMap
 			currentType = prop.PropertyType;
 		}
 
-		var leafProp = currentType.GetProperty(segments[^1], BindingFlags.Public | BindingFlags.Instance);
+		var leafProp = currentType.GetProperty(segments[segments.Length - 1], BindingFlags.Public | BindingFlags.Instance);
 		leafProp?.SetValue(current, value);
 	}
 

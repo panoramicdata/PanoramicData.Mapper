@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using PanoramicData.Mapper.Internal;
 using System.Reflection;
 
 namespace PanoramicData.Mapper.QueryableExtensions;
@@ -34,8 +35,6 @@ public static partial class Extensions
 		typeof(DateTimeOffset),
 		typeof(TimeSpan),
 		typeof(Guid),
-		typeof(DateOnly),
-		typeof(TimeOnly),
 	];
 
 	/// <summary>
@@ -48,8 +47,8 @@ public static partial class Extensions
 		this IQueryable source,
 		IConfigurationProvider configurationProvider)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(configurationProvider);
+		Guard.NotNull(source);
+		Guard.NotNull(configurationProvider);
 
 		return ProjectToInternal<TDestination>(source, configurationProvider, NoMembers);
 	}
@@ -64,9 +63,9 @@ public static partial class Extensions
 		IConfigurationProvider configurationProvider,
 		params Expression<Func<TDestination, object?>>[] membersToExpand)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(configurationProvider);
-		ArgumentNullException.ThrowIfNull(membersToExpand);
+		Guard.NotNull(source);
+		Guard.NotNull(configurationProvider);
+		Guard.NotNull(membersToExpand);
 
 		var names = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var member in membersToExpand)

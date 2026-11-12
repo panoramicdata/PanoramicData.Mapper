@@ -300,7 +300,10 @@ public sealed partial class TypeMap(Type sourceType, Type destinationType)
 	{
 		foreach (var kvp in PropertyMappings)
 		{
-			derived.PropertyMappings.TryAdd(kvp.Key, kvp.Value);
+			if (!derived.PropertyMappings.ContainsKey(kvp.Key))
+			{
+				derived.PropertyMappings.Add(kvp.Key, kvp.Value);
+			}
 		}
 
 		foreach (var ignored in IgnoredMembers)

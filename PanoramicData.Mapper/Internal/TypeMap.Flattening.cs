@@ -11,7 +11,16 @@ public sealed partial class TypeMap
 {
 	private readonly record struct FlattenedAccessor(Func<object, object?> Getter, Type ReturnType);
 
-	private static FlattenedAccessor? TryBuildFlattenedGetter(string destPropName, Type sourceType)
+	private readonly MemoCache<(string DestPropName, Type SourceType), FlattenedAccessor?> _flatteningCache = new();
+
+	internal int FlatteningCacheLookups => _flatteningCache.Lookups;
+
+	internal int FlatteningCacheMisses => _flatteningCache.Misses;
+
+	private FlattenedAccessor? TryBuildFlattenedGetter(string destPropName, Type sourceType)
+		=> _flatteningCache.GetOrAdd((destPropName, sourceType), key => BuildFlattenedGetter(key.DestPropName, key.SourceType));
+
+	private static FlattenedAccessor? BuildFlattenedGetter(string destPropName, Type sourceType)
 	{
 		var segments = SplitPascalCase(destPropName);
 		return TryBuildAccessorChain(segments, 0, sourceType);
@@ -42,7 +51,7 @@ public sealed partial class TypeMap
 				}
 			}
 
-			var method = currentType.GetMethod($"Get{prefix}", BindingFlags.Public | BindingFlags.Instance, Type.EmptyTypes);
+			var method = currentType.GetMethod($"Get{prefix}", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
 			if (method is not null && method.ReturnType != typeof(void))
 			{
 				var result = BuildPropertyAccessor(segments, startIndex + length, remainingConsumed, obj => method.Invoke(obj, null), method.ReturnType);
@@ -92,12 +101,12 @@ public sealed partial class TypeMap
 		{
 			if (char.IsUpper(name[i]))
 			{
-				segments.Add(name[start..i]);
+				segments.Add(name.Substring(start, i - start));
 				start = i;
 			}
 		}
 
-		segments.Add(name[start..]);
+		segments.Add(name.Substring(start));
 		return segments;
 	}
 }

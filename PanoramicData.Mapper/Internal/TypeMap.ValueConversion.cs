@@ -58,9 +58,9 @@ internal static partial class TypeMapConversion
 		// String -> enum
 		if (value is string str)
 		{
-			if (str.Length > 0 && Enum.TryParse(dstCore, str, out var parsed))
+			if (str.Length > 0 && TryParseEnum(dstCore, str, out var parsed))
 			{
-				return parsed;
+				return parsed!;
 			}
 
 			// Unparseable string - return default for the enum
@@ -69,6 +69,24 @@ internal static partial class TypeMapConversion
 
 		// Integral -> enum (Convert.ChangeType cannot handle this)
 		return Enum.ToObject(dstCore, value);
+	}
+
+	private static bool TryParseEnum(Type enumType, string text, out object? parsed)
+	{
+#if NET5_0_OR_GREATER
+		return Enum.TryParse(enumType, text, out parsed);
+#else
+		try
+		{
+			parsed = Enum.Parse(enumType, text);
+			return true;
+		}
+		catch (Exception ex) when (ex is ArgumentException or OverflowException)
+		{
+			parsed = null;
+			return false;
+		}
+#endif
 	}
 
 	private static object? ChangeType(object value, Type destType, Type dstCore)

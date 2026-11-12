@@ -20,7 +20,7 @@ public sealed class Mapper(MapperConfiguration configuration) : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TDestination>(object source)
 	{
-		ArgumentNullException.ThrowIfNull(source);
+		Guard.NotNull(source);
 
 		var sourceType = source.GetType();
 		var destType = typeof(TDestination);
@@ -50,7 +50,7 @@ public sealed class Mapper(MapperConfiguration configuration) : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TSource, TDestination>(TSource source)
 	{
-		ArgumentNullException.ThrowIfNull(source);
+		Guard.NotNull(source);
 
 		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination));
 
@@ -78,8 +78,8 @@ public sealed class Mapper(MapperConfiguration configuration) : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(destination);
+		Guard.NotNull(source);
+		Guard.NotNull(destination);
 
 		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination));
 
@@ -102,8 +102,8 @@ public sealed class Mapper(MapperConfiguration configuration) : IMapper
 	/// <inheritdoc />
 	public TDestination Map<TSource, TDestination>(TSource source, Action<IMappingOperationOptions<TSource, TDestination>> opts)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(opts);
+		Guard.NotNull(source);
+		Guard.NotNull(opts);
 
 		var typeMap = _configuration.FindTypeMap(typeof(TSource), typeof(TDestination));
 
@@ -147,7 +147,7 @@ public sealed class Mapper(MapperConfiguration configuration) : IMapper
 	/// <inheritdoc />
 	public object Map(object source, Type sourceType, Type destinationType)
 	{
-		ArgumentNullException.ThrowIfNull(source);
+		Guard.NotNull(source);
 
 		var typeMap = _configuration.FindTypeMap(sourceType, destinationType);
 
@@ -175,8 +175,8 @@ public sealed class Mapper(MapperConfiguration configuration) : IMapper
 	/// <inheritdoc />
 	public object Map(object source, object destination, Type sourceType, Type destinationType)
 	{
-		ArgumentNullException.ThrowIfNull(source);
-		ArgumentNullException.ThrowIfNull(destination);
+		Guard.NotNull(source);
+		Guard.NotNull(destination);
 
 		var typeMap = _configuration.FindTypeMap(sourceType, destinationType);
 

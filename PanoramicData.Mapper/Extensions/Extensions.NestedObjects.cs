@@ -126,6 +126,9 @@ public static partial class Extensions
 	private static bool IsSimple(Type type)
 	{
 		var underlying = Nullable.GetUnderlyingType(type) ?? type;
-		return underlying.IsPrimitive || underlying.IsEnum || ScalarValueTypes.Contains(underlying);
+		return underlying.IsPrimitive
+			|| underlying.IsEnum
+			|| ScalarValueTypes.Contains(underlying)
+			|| underlying.FullName is "System.DateOnly" or "System.TimeOnly";
 	}
 }
