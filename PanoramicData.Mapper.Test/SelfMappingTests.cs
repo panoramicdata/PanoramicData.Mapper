@@ -10,6 +10,25 @@ public class SelfMappingTests
 		return new Mapper(config);
 	}
 
+	private static SelfMapEntity NewEmpty() => new() { Id = 0, Name = "", Amount = 0m };
+
+	private static void AssertEntity(SelfMapEntity dest, int id, string name, decimal amount)
+	{
+		dest.Id.Should().Be(id);
+		dest.Name.Should().Be(name);
+		dest.Amount.Should().Be(amount);
+	}
+
+	private static void AssertGraphItem(DataSourceGraphStoreItem dest, DataSourceGraphStoreItem expected)
+	{
+		dest.Id.Should().Be(expected.Id);
+		dest.CreatedAt.Should().Be(expected.CreatedAt);
+		dest.Name.Should().Be(expected.Name);
+		dest.Title.Should().Be(expected.Title);
+		dest.Width.Should().Be(expected.Width);
+		dest.IsActive.Should().Be(expected.IsActive);
+	}
+
 	// --- Create-new overloads ---
 
 	[Fact]
@@ -21,9 +40,7 @@ public class SelfMappingTests
 		var dest = mapper.Map<SelfMapEntity>(source);
 
 		dest.Should().NotBeSameAs(source);
-		dest.Id.Should().Be(1);
-		dest.Name.Should().Be("Test");
-		dest.Amount.Should().Be(42.5m);
+		AssertEntity(dest, 1, "Test", 42.5m);
 	}
 
 	[Fact]
@@ -35,9 +52,7 @@ public class SelfMappingTests
 		var dest = mapper.Map<SelfMapEntity, SelfMapEntity>(source);
 
 		dest.Should().NotBeSameAs(source);
-		dest.Id.Should().Be(2);
-		dest.Name.Should().Be("Hello");
-		dest.Amount.Should().Be(100m);
+		AssertEntity(dest, 2, "Hello", 100m);
 	}
 
 	[Fact]
@@ -49,9 +64,7 @@ public class SelfMappingTests
 		var dest = mapper.Map<SelfMapEntity, SelfMapEntity>(source);
 
 		dest.Should().NotBeSameAs(source);
-		dest.Id.Should().Be(3);
-		dest.Name.Should().Be("Untyped");
-		dest.Amount.Should().Be(9.99m);
+		AssertEntity(dest, 3, "Untyped", 9.99m);
 	}
 
 	// --- Map-to-existing overloads ---
@@ -61,14 +74,12 @@ public class SelfMappingTests
 	{
 		var mapper = CreateMapper();
 		var source = new SelfMapEntity { Id = 10, Name = "Source", Amount = 50m };
-		var dest = new SelfMapEntity { Id = 0, Name = "", Amount = 0m };
+		var dest = NewEmpty();
 
 		var result = mapper.Map(source, dest);
 
 		result.Should().BeSameAs(dest);
-		dest.Id.Should().Be(10);
-		dest.Name.Should().Be("Source");
-		dest.Amount.Should().Be(50m);
+		AssertEntity(dest, 10, "Source", 50m);
 	}
 
 	[Fact]
@@ -76,14 +87,12 @@ public class SelfMappingTests
 	{
 		var mapper = CreateMapper();
 		var source = new SelfMapEntity { Id = 20, Name = "Obj", Amount = 1.5m };
-		var dest = new SelfMapEntity { Id = 0, Name = "", Amount = 0m };
+		var dest = NewEmpty();
 
 		var result = mapper.Map(source, dest);
 
 		result.Should().BeSameAs(dest);
-		dest.Id.Should().Be(20);
-		dest.Name.Should().Be("Obj");
-		dest.Amount.Should().Be(1.5m);
+		AssertEntity(dest, 20, "Obj", 1.5m);
 	}
 
 	// --- Required properties and inheritance ---
@@ -105,12 +114,7 @@ public class SelfMappingTests
 		var dest = mapper.Map<DataSourceGraphStoreItem>(source);
 
 		dest.Should().NotBeSameAs(source);
-		dest.Id.Should().Be(5);
-		dest.CreatedAt.Should().Be(new DateTime(2025, 1, 1));
-		dest.Name.Should().Be("Graph1");
-		dest.Title.Should().Be("My Graph");
-		dest.Width.Should().Be(800);
-		dest.IsActive.Should().BeTrue();
+		AssertGraphItem(dest, source);
 	}
 
 	[Fact]
@@ -137,12 +141,7 @@ public class SelfMappingTests
 		var result = mapper.Map(source, dest);
 
 		result.Should().BeSameAs(dest);
-		dest.Id.Should().Be(6);
-		dest.CreatedAt.Should().Be(new DateTime(2024, 6, 15));
-		dest.Name.Should().Be("Updated");
-		dest.Title.Should().Be("Updated Title");
-		dest.Width.Should().Be(1024);
-		dest.IsActive.Should().BeFalse();
+		AssertGraphItem(dest, source);
 	}
 
 	// --- Explicit CreateMap still takes precedence ---
@@ -159,9 +158,7 @@ public class SelfMappingTests
 		var dest = mapper.Map<SelfMapEntity>(source);
 
 		dest.Should().NotBeSameAs(source);
-		dest.Id.Should().Be(7);
-		dest.Name.Should().Be("Explicit");
-		dest.Amount.Should().Be(99m);
+		AssertEntity(dest, 7, "Explicit", 99m);
 	}
 
 	// --- Runtime-typed overloads ---
@@ -175,9 +172,7 @@ public class SelfMappingTests
 		var dest = (SelfMapEntity)mapper.Map(source, typeof(SelfMapEntity), typeof(SelfMapEntity));
 
 		dest.Should().NotBeSameAs(source);
-		dest.Id.Should().Be(30);
-		dest.Name.Should().Be("Runtime");
-		dest.Amount.Should().Be(7.77m);
+		AssertEntity(dest, 30, "Runtime", 7.77m);
 	}
 
 	[Fact]
@@ -185,14 +180,12 @@ public class SelfMappingTests
 	{
 		var mapper = CreateMapper();
 		var source = new SelfMapEntity { Id = 40, Name = "RuntimeExisting", Amount = 3.14m };
-		var dest = new SelfMapEntity { Id = 0, Name = "", Amount = 0m };
+		var dest = NewEmpty();
 
 		var result = (SelfMapEntity)mapper.Map(source, dest, typeof(SelfMapEntity), typeof(SelfMapEntity));
 
 		result.Should().BeSameAs(dest);
-		dest.Id.Should().Be(40);
-		dest.Name.Should().Be("RuntimeExisting");
-		dest.Amount.Should().Be(3.14m);
+		AssertEntity(dest, 40, "RuntimeExisting", 3.14m);
 	}
 
 	// --- Options overload ---

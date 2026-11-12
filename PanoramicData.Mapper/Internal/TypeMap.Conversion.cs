@@ -143,6 +143,9 @@ public sealed partial class TypeMap
 		}
 	}
 
+	private static bool IsGenericEnumerable(Type type)
+		=> type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+
 	internal static bool TryGetCollectionElementType(Type type, out Type elementType)
 	{
 		// Arrays
@@ -153,9 +156,9 @@ public sealed partial class TypeMap
 		}
 
 		// IEnumerable<T> implemented by the type
-		var enumerableInterface = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+		var enumerableInterface = IsGenericEnumerable(type)
 			? type
-			: type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+			: type.GetInterfaces().FirstOrDefault(IsGenericEnumerable);
 
 		if (enumerableInterface is not null)
 		{
@@ -169,20 +172,26 @@ public sealed partial class TypeMap
 
 	internal static object MapCollection(IEnumerable source, TypeMap elementTypeMap, Type destCollectionType, Type destElementType)
 	{
-		// Array destination
-		if (destCollectionType.IsArray)
-		{
-			var items = source.Cast<object>().Select(item => elementTypeMap.Map(item)).ToList();
-			var array = Array.CreateInstance(destElementType, items.Count);
-			for (var i = 0; i < items.Count; i++)
-			{
-				array.SetValue(items[i], i);
-			}
+		return destCollectionType.IsArray
+			? MapToArray(source, elementTypeMap, destElementType)
+			: MapToList(source, elementTypeMap, destElementType);
+	}
 
-			return array;
+	private static Array MapToArray(IEnumerable source, TypeMap elementTypeMap, Type destElementType)
+	{
+		var items = source.Cast<object>().Select(item => elementTypeMap.Map(item)).ToList();
+		var array = Array.CreateInstance(destElementType, items.Count);
+		for (var i = 0; i < items.Count; i++)
+		{
+			array.SetValue(items[i], i);
 		}
 
-		// List<T> or any interface assignable from List<T>
+		return array;
+	}
+
+	// List<T> or any interface assignable from List<T>
+	private static IList MapToList(IEnumerable source, TypeMap elementTypeMap, Type destElementType)
+	{
 		var listType = typeof(List<>).MakeGenericType(destElementType);
 		if (Activator.CreateInstance(listType) is not IList list)
 		{

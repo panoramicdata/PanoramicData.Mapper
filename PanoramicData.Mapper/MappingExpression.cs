@@ -12,19 +12,21 @@ internal sealed class MappingExpression<TSource, TDestination>(TypeMap typeMap, 
 		Expression<Func<TDestination, TMember>> destinationMember,
 		Action<IMemberConfigurationExpression<TSource, TDestination, TMember>> memberOptions)
 	{
-		var memberName = GetMemberName(destinationMember);
-		var config = new MemberConfigurationExpression<TSource, TDestination, TMember>(memberName);
-		memberOptions(config);
-		ApplyMemberConfig(config);
-		typeMap.ResetCompiledMapper();
-		return this;
+		return ConfigureMember(GetMemberName(destinationMember), memberOptions);
 	}
 
 	public IMappingExpression<TSource, TDestination> ForMember(
 		string name,
 		Action<IMemberConfigurationExpression<TSource, TDestination, object>> memberOptions)
 	{
-		var config = new MemberConfigurationExpression<TSource, TDestination, object>(name);
+		return ConfigureMember(name, memberOptions);
+	}
+
+	private MappingExpression<TSource, TDestination> ConfigureMember<TMember>(
+		string memberName,
+		Action<IMemberConfigurationExpression<TSource, TDestination, TMember>> memberOptions)
+	{
+		var config = new MemberConfigurationExpression<TSource, TDestination, TMember>(memberName);
 		memberOptions(config);
 		ApplyMemberConfig(config);
 		typeMap.ResetCompiledMapper();
@@ -69,27 +71,29 @@ internal sealed class MappingExpression<TSource, TDestination>(TypeMap typeMap, 
 
 	public IMappingExpression<TSource, TDestination> BeforeMap(Action<TSource, TDestination> beforeFunction)
 	{
-		typeMap.BeforeMapActions.Add(beforeFunction);
-		return this;
+		return AddAction(typeMap.BeforeMapActions, beforeFunction);
 	}
 
 	public IMappingExpression<TSource, TDestination> BeforeMap<TMappingAction>()
 		where TMappingAction : IMappingAction<TSource, TDestination>, new()
 	{
-		typeMap.BeforeMapActionTypes.Add(typeof(TMappingAction));
-		return this;
+		return AddAction(typeMap.BeforeMapActionTypes, typeof(TMappingAction));
 	}
 
 	public IMappingExpression<TSource, TDestination> AfterMap(Action<TSource, TDestination> afterFunction)
 	{
-		typeMap.AfterMapActions.Add(afterFunction);
-		return this;
+		return AddAction(typeMap.AfterMapActions, afterFunction);
 	}
 
 	public IMappingExpression<TSource, TDestination> AfterMap<TMappingAction>()
 		where TMappingAction : IMappingAction<TSource, TDestination>, new()
 	{
-		typeMap.AfterMapActionTypes.Add(typeof(TMappingAction));
+		return AddAction(typeMap.AfterMapActionTypes, typeof(TMappingAction));
+	}
+
+	private MappingExpression<TSource, TDestination> AddAction<TAction>(List<TAction> actions, TAction action)
+	{
+		actions.Add(action);
 		return this;
 	}
 
@@ -188,21 +192,12 @@ internal sealed class MappingExpression<TSource, TDestination>(TypeMap typeMap, 
 	}
 
 	private static string GetMemberName<TMember>(Expression<Func<TDestination, TMember>> expression)
-	{
-		if (expression.Body is MemberExpression memberExpression)
-		{
-			return memberExpression.Member.Name;
-		}
-
-		if (expression.Body is UnaryExpression { Operand: MemberExpression unaryMember })
-		{
-			return unaryMember.Member.Name;
-		}
-
-		throw new ArgumentException($"Expression '{expression}' does not refer to a property or field.");
-	}
+		=> GetLambdaMemberName(expression);
 
 	private static string GetSourceMemberName<TMember>(Expression<Func<TSource, TMember>> expression)
+		=> GetLambdaMemberName(expression);
+
+	private static string GetLambdaMemberName(LambdaExpression expression)
 	{
 		if (expression.Body is MemberExpression memberExpression)
 		{

@@ -19,24 +19,19 @@ public partial class ProjectToTests
 
 	private static void SeedData(TestDbContext context)
 	{
-		context.Sources.Add(new SimpleSource
-		{
-			Id = 1,
-			Name = "First",
-			Description = "Desc1",
-			CreatedDate = new DateTime(2026, 1, 1),
-			Amount = 10m
-		});
-		context.Sources.Add(new SimpleSource
-		{
-			Id = 2,
-			Name = "Second",
-			Description = "Desc2",
-			CreatedDate = new DateTime(2026, 2, 1),
-			Amount = 20m
-		});
+		context.Sources.Add(NewSource(1, "First", "Desc1", new DateTime(2026, 1, 1), 10m));
+		context.Sources.Add(NewSource(2, "Second", "Desc2", new DateTime(2026, 2, 1), 20m));
 		context.SaveChanges();
 	}
+
+	private static SimpleSource NewSource(int id, string name, string description, DateTime createdDate, decimal amount) => new()
+	{
+		Id = id,
+		Name = name,
+		Description = description,
+		CreatedDate = createdDate,
+		Amount = amount
+	};
 
 	private class SimpleProjectProfile : Profile
 	{

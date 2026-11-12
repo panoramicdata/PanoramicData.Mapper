@@ -7,9 +7,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_ToExistingObject_UpdatesProperties()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new SimpleMapProfile()));
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper(new SimpleMapProfile());
 
 		var source = new SimpleSource
 		{
@@ -42,9 +40,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_ToExistingWithIgnoredProps_PreservesIgnored()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IgnoreUpdateProfile()));
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper(new IgnoreUpdateProfile());
 
 		var source = new SimpleSource { Id = 5, Name = "New" };
 		var existing = new DestinationWithIgnoredProps
@@ -66,9 +62,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_RuntimeTypes_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new SimpleMapProfile()));
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper(new SimpleMapProfile());
 
 		var source = new SimpleSource { Id = 42, Name = "Runtime" };
 		var result = mapper.Map<SimpleSource, SimpleDestination>(source);
@@ -81,9 +75,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_RuntimeTypesToExisting_MapsCorrectly()
 	{
-		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new SimpleMapProfile()));
-		var mapper = config.CreateMapper();
+		var mapper = CreateMapper(new SimpleMapProfile());
 
 		var source = new SimpleSource { Id = 7, Name = "RT" };
 		var existing = new SimpleDestination { Id = 0, Name = "Old" };
@@ -93,6 +85,9 @@ public class UpdateExistingTests
 		existing.Id.Should().Be(7);
 		existing.Name.Should().Be("RT");
 	}
+
+	private static IMapper CreateMapper(Profile profile)
+		=> new MapperConfiguration(cfg => cfg.AddProfile(profile)).CreateMapper();
 
 	private class SimpleMapProfile : Profile
 	{

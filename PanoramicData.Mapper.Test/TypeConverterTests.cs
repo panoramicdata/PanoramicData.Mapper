@@ -82,8 +82,12 @@ public class TypeConverterTests
 
     private class RepeatConverter : ITypeConverter<ConverterSource, ConverterDest>
     {
-        public ConverterDest Convert(ConverterSource source, ConverterDest _, ResolutionContext context)
-            => new() { Result = string.Concat(Enumerable.Repeat(source.Value, source.Multiplier)) };
+        public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext context)
+        {
+            _ = destination;
+            ArgumentNullException.ThrowIfNull(context);
+            return new() { Result = string.Concat(Enumerable.Repeat(source.Value, source.Multiplier)) };
+        }
     }
 
     private class LambdaConverterProfile : Profile
@@ -120,6 +124,7 @@ public class TypeConverterTests
     {
         public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext context)
         {
+            _ = destination;
             capture(context);
             return new ConverterDest { Result = source.Value };
         }
@@ -138,8 +143,9 @@ public class TypeConverterTests
 
     private class DestCapturingConverter(Action<ConverterDest?> capture) : ITypeConverter<ConverterSource, ConverterDest>
     {
-        public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext _)
+        public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext context)
         {
+            ArgumentNullException.ThrowIfNull(context);
             capture(destination);
             return new ConverterDest { Result = source.Value };
         }

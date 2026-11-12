@@ -16,17 +16,7 @@ public sealed partial class TypeMap
 		PropertyInfo destProp,
 		Dictionary<string, PropertyInfo> sourceProperties)
 	{
-		if (AllMembersIgnored)
-		{
-			return null;
-		}
-
-		if (destProp.GetCustomAttribute<IgnoreAttribute>() is not null)
-		{
-			return null;
-		}
-
-		if (IgnoredMembers.Contains(destProp.Name))
+		if (IsMemberIgnored(destProp))
 		{
 			return null;
 		}
@@ -42,6 +32,33 @@ public sealed partial class TypeMap
 		}
 
 		return TryBuildFlattenedAssignment(destProp);
+	}
+
+	private bool IsMemberIgnored(PropertyInfo destProp)
+		=> AllMembersIgnored
+			|| destProp.GetCustomAttribute<IgnoreAttribute>() is not null
+			|| IgnoredMembers.Contains(destProp.Name);
+
+	/// <summary>
+	/// Reads the source value, converts it only when the types are not directly assignable,
+	/// applies value transformers and writes the destination member.
+	/// </summary>
+	private Action<object, object> BuildValueAssignment(
+		Func<object, object?> getter,
+		Type sourceType,
+		PropertyInfo destProp)
+	{
+		var destSetter = CreateSetter(destProp);
+		var destType = destProp.PropertyType;
+
+		if (destType.IsAssignableFrom(sourceType))
+		{
+			return (src, dest) =>
+				destSetter(dest, ApplyValueTransformers(getter(src), destType));
+		}
+
+		return (src, dest) =>
+			destSetter(dest, ApplyValueTransformers(ConvertValue(getter(src), destType), destType));
 	}
 
 	private Action<object, object>? TryBuildConventionAssignment(PropertyInfo sourceProp, PropertyInfo destProp)
@@ -62,30 +79,7 @@ public sealed partial class TypeMap
 			return null;
 		}
 
-		var srcGetter = CreateGetter(sourceProp);
-		var destSetter = CreateSetter(destProp);
-		var destType = destProp.PropertyType;
-
-		// Direct assignment when types are directly compatible (no conversion overhead)
-		if (destType.IsAssignableFrom(sourceProp.PropertyType))
-		{
-			return (src, dest) =>
-			{
-				var value = srcGetter(src);
-				value = ApplyValueTransformers(value, destType);
-				destSetter(dest, value);
-			};
-		}
-
-		// Type conversion needed (enum↔integral, numeric widening/narrowing,
-		// primitive↔string, string↔enum, nullable unwrapping, etc.)
-		return (src, dest) =>
-		{
-			var value = srcGetter(src);
-			value = ConvertValue(value, destType);
-			value = ApplyValueTransformers(value, destType);
-			destSetter(dest, value);
-		};
+		return BuildValueAssignment(CreateGetter(sourceProp), sourceProp.PropertyType, destProp);
 	}
 
 	private Action<object, object>? TryBuildNestedAssignment(PropertyInfo sourceProp, PropertyInfo destProp)
@@ -142,27 +136,7 @@ public sealed partial class TypeMap
 			return null;
 		}
 
-		var getter = flattenedGetter.Value.Getter;
-		var destSetter = CreateSetter(destProp);
-		var destType = destProp.PropertyType;
-
-		if (destType.IsAssignableFrom(flattenedGetter.Value.ReturnType))
-		{
-			return (src, dest) =>
-			{
-				var value = getter(src);
-				value = ApplyValueTransformers(value, destType);
-				destSetter(dest, value);
-			};
-		}
-
-		return (src, dest) =>
-		{
-			var value = getter(src);
-			value = ConvertValue(value, destType);
-			value = ApplyValueTransformers(value, destType);
-			destSetter(dest, value);
-		};
+		return BuildValueAssignment(flattenedGetter.Value.Getter, flattenedGetter.Value.ReturnType, destProp);
 	}
 
 	private Action<object, object> BuildMappingAssignment(PropertyMapping mapping, PropertyInfo destProp)
@@ -182,7 +156,7 @@ public sealed partial class TypeMap
 		Func<object, object?> destGetter,
 		Action<object, object?> destSetter)
 	{
-		if (mapping.PreCondition is not null && mapping.PreCondition.DynamicInvoke(src) is false)
+		if (PreConditionFails(mapping, src))
 		{
 			return;
 		}
@@ -280,24 +254,21 @@ public sealed partial class TypeMap
 		return null;
 	}
 
+	private static bool PreConditionFails(PropertyMapping mapping, object src)
+		=> mapping.PreCondition is not null && mapping.PreCondition.DynamicInvoke(src) is false;
+
 	private Action<object, object> BuildForPathAssignment(PropertyMapping pathMapping)
 	{
 		var segments = pathMapping.PathSegments!;
 
 		return (src, dest) =>
 		{
-			if (pathMapping.PreCondition is not null && pathMapping.PreCondition.DynamicInvoke(src) is false)
+			if (PreConditionFails(pathMapping, src))
 			{
 				return;
 			}
 
-			object? value = null;
-			if (pathMapping.SourceExpression is not null)
-			{
-				var compiled = pathMapping.SourceExpression.Compile();
-				value = compiled.DynamicInvoke(src);
-			}
-
+			var value = pathMapping.SourceExpression?.Compile().DynamicInvoke(src);
 			SetNestedValue(dest, DestinationType, segments, value);
 		};
 	}
@@ -356,7 +327,16 @@ public sealed partial class TypeMap
 		}
 
 		var context = new ResolutionContext();
-		foreach (var actionType in BeforeMapActionTypes)
+		InvokeMappingActionTypes(BeforeMapActionTypes, source, destination, context);
+	}
+
+	private static void InvokeMappingActionTypes(
+		List<Type> actionTypes,
+		object source,
+		object destination,
+		ResolutionContext context)
+	{
+		foreach (var actionType in actionTypes)
 		{
 			var instance = Activator.CreateInstance(actionType)
 				?? throw new InvalidOperationException($"Cannot create instance of mapping action {actionType.FullName}");
@@ -375,16 +355,6 @@ public sealed partial class TypeMap
 			action.DynamicInvoke(source, destination);
 		}
 
-		foreach (var actionType in AfterMapActionTypes)
-		{
-			var instance = Activator.CreateInstance(actionType)
-				?? throw new InvalidOperationException($"Cannot create instance of mapping action {actionType.FullName}");
-
-			// Find and invoke the Process method
-			var processMethod = actionType.GetMethod("Process")
-				?? throw new InvalidOperationException($"Mapping action {actionType.FullName} does not have a Process method");
-
-			processMethod.Invoke(instance, [source, destination, context]);
-		}
+		InvokeMappingActionTypes(AfterMapActionTypes, source, destination, context);
 	}
 }

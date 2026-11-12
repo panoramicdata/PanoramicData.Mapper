@@ -381,6 +381,14 @@ public static class Extensions
 			sourceCollection,
 			elementLambda);
 
+		return ShapeCollection(selectCall, destCollectionType, destElem);
+	}
+
+	/// <summary>
+	/// Wraps a projected element sequence in the shape the destination collection type needs.
+	/// </summary>
+	private static Expression ShapeCollection(Expression selectCall, Type destCollectionType, Type destElem)
+	{
 		if (destCollectionType.IsArray)
 		{
 			return Expression.Call(ToArrayMethod.MakeGenericMethod(destElem), selectCall);

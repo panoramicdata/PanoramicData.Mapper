@@ -32,8 +32,12 @@ public class ValueResolverTests
 
     private class FullNameResolver : IValueResolver<ValueResolverSource, ValueResolverDest, string>
     {
-        public string Resolve(ValueResolverSource source, ValueResolverDest _, string _destMember, ResolutionContext context)
-            => $"{source.FirstName} {source.LastName}";
+        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
+        {
+            _ = (destination, destMember);
+            ArgumentNullException.ThrowIfNull(context);
+            return $"{source.FirstName} {source.LastName}";
+        }
     }
 
     private class ResolverTypeProfile : Profile
@@ -88,6 +92,7 @@ public class ValueResolverTests
     {
         public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
         {
+            _ = (destination, destMember);
             capture(context);
             return $"{source.FirstName} {source.LastName}";
         }
@@ -104,8 +109,10 @@ public class ValueResolverTests
 
     private class DestCapturingResolver(Action<ValueResolverDest?> capture) : IValueResolver<ValueResolverSource, ValueResolverDest, string>
     {
-        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string _, ResolutionContext context)
+        public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
         {
+            _ = destMember;
+            ArgumentNullException.ThrowIfNull(context);
             capture(destination);
             return $"{source.FirstName} {source.LastName}";
         }
