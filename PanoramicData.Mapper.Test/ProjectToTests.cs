@@ -1,6 +1,7 @@
 #pragma warning disable S2333 // partial is required: class is split across multiple files
 using Microsoft.EntityFrameworkCore;
 using PanoramicData.Mapper.Test.Models;
+using PanoramicData.Mapper.Test.Profiles;
 
 namespace PanoramicData.Mapper.Test;
 
@@ -14,7 +15,7 @@ public partial class ProjectToTests
 	public void ProjectTo_ConventionMapping_ProjectsCorrectly()
 	{
 		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new SimpleProjectProfile()));
+			cfg.AddProfile(new SimpleProfile()));
 
 		using var context = CreateContext();
 		SeedData(context);
@@ -56,7 +57,7 @@ public partial class ProjectToTests
 	public void ProjectTo_WithIgnore_SkipsIgnoredProperties()
 	{
 		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new IgnoreProjectProfile()));
+			cfg.AddProfile(new IgnoreProfile()));
 
 		using var context = CreateContext();
 		SeedData(context);
@@ -147,7 +148,7 @@ public partial class ProjectToTests
 	public void ProjectTo_NullSource_ThrowsArgumentNullException()
 	{
 		var config = new MapperConfiguration(cfg =>
-			cfg.AddProfile(new SimpleProjectProfile()));
+			cfg.AddProfile(new SimpleProfile()));
 
 		IQueryable source = null!;
 		var act = () => source.ProjectTo<SimpleDestination>(config);

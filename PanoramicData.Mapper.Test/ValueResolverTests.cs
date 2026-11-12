@@ -34,7 +34,7 @@ public class ValueResolverTests
     {
         public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
         {
-            _ = (destination, destMember);
+            TestParameter.NotUsed(destination, destMember);
             ArgumentNullException.ThrowIfNull(context);
             return $"{source.FirstName} {source.LastName}";
         }
@@ -92,7 +92,7 @@ public class ValueResolverTests
     {
         public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
         {
-            _ = (destination, destMember);
+            TestParameter.NotUsed(destination, destMember);
             capture(context);
             return $"{source.FirstName} {source.LastName}";
         }
@@ -111,7 +111,7 @@ public class ValueResolverTests
     {
         public string Resolve(ValueResolverSource source, ValueResolverDest destination, string destMember, ResolutionContext context)
         {
-            _ = destMember;
+            TestParameter.NotUsed(destMember);
             ArgumentNullException.ThrowIfNull(context);
             capture(destination);
             return $"{source.FirstName} {source.LastName}";

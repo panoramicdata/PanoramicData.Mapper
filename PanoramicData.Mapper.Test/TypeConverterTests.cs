@@ -84,7 +84,7 @@ public class TypeConverterTests
     {
         public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext context)
         {
-            _ = destination;
+            TestParameter.NotUsed(destination);
             ArgumentNullException.ThrowIfNull(context);
             return new() { Result = string.Concat(Enumerable.Repeat(source.Value, source.Multiplier)) };
         }
@@ -124,7 +124,7 @@ public class TypeConverterTests
     {
         public ConverterDest Convert(ConverterSource source, ConverterDest destination, ResolutionContext context)
         {
-            _ = destination;
+            TestParameter.NotUsed(destination);
             capture(context);
             return new ConverterDest { Result = source.Value };
         }

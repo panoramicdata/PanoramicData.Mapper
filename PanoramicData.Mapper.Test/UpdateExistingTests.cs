@@ -1,4 +1,5 @@
 using PanoramicData.Mapper.Test.Models;
+using PanoramicData.Mapper.Test.Profiles;
 
 namespace PanoramicData.Mapper.Test;
 
@@ -7,7 +8,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_ToExistingObject_UpdatesProperties()
 	{
-		var mapper = CreateMapper(new SimpleMapProfile());
+		var mapper = MapperFactory.Create<SimpleProfile>();
 
 		var source = new SimpleSource
 		{
@@ -40,7 +41,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_ToExistingWithIgnoredProps_PreservesIgnored()
 	{
-		var mapper = CreateMapper(new IgnoreUpdateProfile());
+		var mapper = MapperFactory.Create<IgnoreProfile>();
 
 		var source = new SimpleSource { Id = 5, Name = "New" };
 		var existing = new DestinationWithIgnoredProps
@@ -62,7 +63,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_RuntimeTypes_MapsCorrectly()
 	{
-		var mapper = CreateMapper(new SimpleMapProfile());
+		var mapper = MapperFactory.Create<SimpleProfile>();
 
 		var source = new SimpleSource { Id = 42, Name = "Runtime" };
 		var result = mapper.Map<SimpleSource, SimpleDestination>(source);
@@ -75,7 +76,7 @@ public class UpdateExistingTests
 	[Fact]
 	public void Map_RuntimeTypesToExisting_MapsCorrectly()
 	{
-		var mapper = CreateMapper(new SimpleMapProfile());
+		var mapper = MapperFactory.Create<SimpleProfile>();
 
 		var source = new SimpleSource { Id = 7, Name = "RT" };
 		var existing = new SimpleDestination { Id = 0, Name = "Old" };
@@ -84,26 +85,5 @@ public class UpdateExistingTests
 		result.Should().BeSameAs(existing);
 		existing.Id.Should().Be(7);
 		existing.Name.Should().Be("RT");
-	}
-
-	private static IMapper CreateMapper(Profile profile)
-		=> new MapperConfiguration(cfg => cfg.AddProfile(profile)).CreateMapper();
-
-	private class SimpleMapProfile : Profile
-	{
-		public SimpleMapProfile()
-		{
-			CreateMap<SimpleSource, SimpleDestination>();
-		}
-	}
-
-	private class IgnoreUpdateProfile : Profile
-	{
-		public IgnoreUpdateProfile()
-		{
-			CreateMap<SimpleSource, DestinationWithIgnoredProps>()
-				.ForMember(d => d.Secret, opt => opt.Ignore())
-				.ForMember(d => d.Timestamp, opt => opt.Ignore());
-		}
 	}
 }

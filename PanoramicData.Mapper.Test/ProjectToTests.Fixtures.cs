@@ -33,30 +33,12 @@ public partial class ProjectToTests
 		Amount = amount
 	};
 
-	private class SimpleProjectProfile : Profile
-	{
-		public SimpleProjectProfile()
-		{
-			CreateMap<SimpleSource, SimpleDestination>();
-		}
-	}
-
 	private class PersonProjectProfile : Profile
 	{
 		public PersonProjectProfile()
 		{
 			CreateMap<PersonSource, PersonDest>()
 				.ForMember(d => d.FullName, opt => opt.MapFrom(s => s.FirstName + " " + s.LastName));
-		}
-	}
-
-	private class IgnoreProjectProfile : Profile
-	{
-		public IgnoreProjectProfile()
-		{
-			CreateMap<SimpleSource, DestinationWithIgnoredProps>()
-				.ForMember(d => d.Secret, opt => opt.Ignore())
-				.ForMember(d => d.Timestamp, opt => opt.Ignore());
 		}
 	}
 
