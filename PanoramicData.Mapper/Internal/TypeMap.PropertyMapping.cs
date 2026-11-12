@@ -1,3 +1,4 @@
+using static PanoramicData.Mapper.Internal.TypeMapConversion;
 using System.Reflection;
 
 namespace PanoramicData.Mapper.Internal;

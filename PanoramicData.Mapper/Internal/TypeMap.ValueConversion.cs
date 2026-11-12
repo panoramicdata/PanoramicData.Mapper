@@ -3,13 +3,13 @@ namespace PanoramicData.Mapper.Internal;
 /// <summary>
 /// Coerces a source value into the destination type where the two are not directly assignable.
 /// </summary>
-public sealed partial class TypeMap
+internal static partial class TypeMapConversion
 {
 	/// <summary>
 	/// Converts a source value to the destination type, handling null, enum, numeric,
 	/// and string conversions that PropertyInfo.SetValue cannot perform implicitly.
 	/// </summary>
-	private static object? ConvertValue(object? value, Type destType)
+	internal static object? ConvertValue(object? value, Type destType)
 	{
 		var dstCore = Nullable.GetUnderlyingType(destType) ?? destType;
 

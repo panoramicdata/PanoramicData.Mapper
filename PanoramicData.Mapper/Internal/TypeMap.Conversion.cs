@@ -1,4 +1,3 @@
-#pragma warning disable S2333 // partial is required: class is split across multiple files
 using System.Reflection;
 
 namespace PanoramicData.Mapper.Internal;
@@ -7,19 +6,19 @@ namespace PanoramicData.Mapper.Internal;
 /// Reads and writes member values, and coerces a source value into the destination type
 /// where the two are not directly assignable.
 /// </summary>
-public sealed partial class TypeMap
+internal static partial class TypeMapConversion
 {
-	private static Func<object, object?> CreateGetter(PropertyInfo prop)
+	internal static Func<object, object?> CreateGetter(PropertyInfo prop)
 	{
 		return obj => prop.GetValue(obj);
 	}
 
-	private static Action<object, object?> CreateSetter(PropertyInfo prop)
+	internal static Action<object, object?> CreateSetter(PropertyInfo prop)
 	{
 		return (obj, value) => prop.SetValue(obj, value);
 	}
 
-	private static bool IsAssignableOrConvertible(Type sourceType, Type destType)
+	internal static bool IsAssignableOrConvertible(Type sourceType, Type destType)
 		=> IsDirectlyAssignable(sourceType, destType) || IsConvertible(sourceType, destType);
 
 	/// <summary>

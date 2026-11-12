@@ -48,6 +48,7 @@ public class AfterMapTests
 		public void Process(SimpleSource source, SimpleDestination destination, ResolutionContext context)
 		{
 			ArgumentNullException.ThrowIfNull(source);
+			ArgumentNullException.ThrowIfNull(context);
 			destination.Name = "PROCESSED";
 		}
 	}
