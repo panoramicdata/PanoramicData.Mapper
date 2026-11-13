@@ -4,6 +4,8 @@
 
 A comprehensive, MIT-licensed, API-compatible replacement for AutoMapper.
 
+Supports .NET Standard 2.0 and .NET 11.0.
+
 [![Nuget](https://img.shields.io/nuget/v/PanoramicData.Mapper)](https://www.nuget.org/packages/PanoramicData.Mapper/)
 [![Nuget](https://img.shields.io/nuget/dt/PanoramicData.Mapper)](https://www.nuget.org/packages/PanoramicData.Mapper/)
 ![License](https://img.shields.io/github/license/panoramicdata/PanoramicData.Mapper)
